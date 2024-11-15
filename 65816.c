@@ -1,8 +1,12 @@
 /* 65816.c
  * 65816/6502 module for DisPel
+ * ---  DEADC0DE Edition  ---
+ *
  * James Churchill
  * Created 230900
- * Last Modified 240900
+ * Detailed options for address and hexdump
+ * for DEADC0DE Edition by Tim Böttiger
+ * Last Modified 151124
  */
 
 #include <stdio.h>
@@ -926,8 +930,12 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 		break;
 		// WDM mode
 	case 0x42:
-		// Stack/Interrupt
+		// Interrupt
 	case 0x00:
+                pbuf[0] = 0;
+                offset = 1;
+                break;
+		// Stack
 	case 0x02:
 		sprintf(pbuf,"$%02X",mem[1]);
 		offset = 2;
@@ -997,15 +1005,17 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	}
 	hbuf[8]=0;
 
+	sprintf(inst, "");
+    // Append address to output if not disabled by -A
+	if(!(tsrc&0x10))
+		sprintf(inst + strlen(inst), "%02lX/%04lX:\t", (pos >> 16) & 0xFF, pos&0xFFFF);
+
+    // Append hexdump to output if not disabled by -H
+	if(!(tsrc&0x20))
+		sprintf(inst + strlen(inst), "%s\t", hbuf);
+
 	// Generate whole disassembly line
-	if(!(tsrc & 1))
-	{
-		sprintf(inst, "%02lX/%04lX:\t%s\t%s %s", (pos >> 16) & 0xFF, pos&0xFFFF, hbuf, ibuf, pbuf);
-	}
-	else
-	{
-		sprintf(inst, "%s %s", ibuf, pbuf);
-	}
+	sprintf(inst, "%s%s %s", inst, ibuf, pbuf);
 
 	return offset;
 }

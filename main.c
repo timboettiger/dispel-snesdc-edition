@@ -1,7 +1,13 @@
 /* main.c
  * DisPel 65816 Disassembler
+ * --- DEADC0DE Edition ---
+ *
  * James Churchill
  * Created 20000924
+ *
+ * Detailed options for address and hexdump
+ * for DEADC0DE Edition by Tim Böttiger
+ * Last Modified 151124
  */
 
 #include <stdio.h>
@@ -20,13 +26,15 @@
 void usage(void)
 {
 	printf("\nDisPel v1 by James Churchill/pelrun (C)2001-2011\n"
+		"\nDEADC0DE Edition by Tim Böttiger (C)2024\n"
 		"65816/SNES Disassembler\n"
 		"Usage: dispel [-n] [-t] [-h] [-l] [-s] [-i] [-a] [-x] [-e] [-p]\n"
 		"              [-b <bank>|-r <startaddr>-<endaddr>] [-g <origin>]\n"
 		"              [-d <width>] [-o <outfile>] <infile>\n\n"
 		"Options: (numbers are hex-only, no prefixes)\n"
 		" -n                Skip $200 byte SMC header\n"
-		" -t                Don't output addresses/hex dump.\n"
+		" -A                Don't output addresses.\n"
+		" -H                Don't output hex dump.\n"
 		" -h/-l             Force HiROM/LoROM memory mapping.\n"
 		" -s/-i             Force enable/disable shadow ROM addresses (see readme.)\n"
 		" -a                Start in 8-bit accumulator mode. Default is 16-bit.\n"
@@ -176,8 +184,11 @@ int main(int argc, char *argv[])
 		case 'n':
 			skip = 1;
 			break;
-		case 't':
-			tsrc |= 1;
+		case 'A':
+			tsrc |= 0x10;
+			break;
+		case 'H':
+			tsrc |= 0x20;
 			break;
 		case 'h':
 			hirom = 1;
@@ -201,7 +212,7 @@ int main(int argc, char *argv[])
 			bound = 0;
 			break;
 		case 'p':
-			tsrc |= 2;
+			tsrc |= 0x40;
 			break;
 		case 'd':
 			i++;
@@ -283,13 +294,6 @@ int main(int argc, char *argv[])
 #else
 	len = filelength(fileno(fin));
 #endif
-
-	// Make sure the image is big enough
-
-	if (len < 0x8000 || (skip == 1 && len < 0x8200))
-	{
-		printf("This file looks too small to be a legitimate rom image.\n");
-	}
 
 	// Allocate mem for file. Extra 3 bytes to prevent segfault during memcpy
 	if ((data = malloc(len+3)) == NULL)
