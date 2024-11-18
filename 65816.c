@@ -928,6 +928,11 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	case 0x42:
 		// Stack/Interrupt
 	case 0x00:
+	    if (patch_mode)
+		{
+			offset = 1;
+			break;
+		}
 	case 0x02:
 		sprintf(pbuf,"$%02X",mem[1]);
 		offset = 2;
@@ -997,14 +1002,42 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	}
 	hbuf[8]=0;
 
-	// Generate whole disassembly line
+	char opcode[100], operand[100];
+	const char *template = "; @s.";
+	char placeholder[3];
+
+	extract_placeholder(template, placeholder);
+	strncpy(opcode, ibuf, sizeof(ibuf) - 1);
+    strncpy(opcode, describe(opcode, placeholder), sizeof(opcode) - 1);
+    opcode[sizeof(opcode) - 1] = '\0';
+
+    extract_placeholder(opcode, placeholder);
+    strncpy(operand, pbuf, sizeof(pbuf) - 1);
+    strncpy(operand, describe(operand, placeholder), sizeof(operand) - 1);
+    operand[sizeof(operand) - 1] = '\0';
+
+    static char explanation[100];
+    static char temp[100];
+
+    process_template(template, opcode, temp, sizeof(temp));
+    strncpy(explanation, temp, sizeof(explanation));
+    process_template(explanation, operand, temp, sizeof(temp));
+    strncpy(explanation, temp, sizeof(explanation));
+
+    // Generate whole disassembly line
 	if(!(tsrc & 1))
 	{
-		sprintf(inst, "%02lX/%04lX:\t%s\t%s %s", (pos >> 16) & 0xFF, pos&0xFFFF, hbuf, ibuf, pbuf);
+    	column address = {3, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos&0xFFFF)};
+        column hexcode = {3, hbuf};
+        column opcode = {4, format("%s %s", ibuf, pbuf)};
+        column description = {0, explanation};
+        sprintf(inst, "%s", table(4, address, hexcode, opcode, description));
 	}
 	else
 	{
-		sprintf(inst, "%s %s", ibuf, pbuf);
+        column opcode = {4, format("%s %s", ibuf, pbuf)};
+        column description = {0, explanation};
+        sprintf(inst, "%s", table(2, opcode, description));
 	}
 
 	return offset;

@@ -10,39 +10,36 @@
 
 #ifdef __APPLE__
 #include <sys/uio.h>
-#endif
-#ifdef _WIN32
+#else
+#ifdef __linux__
+#include <sys/io.h>
+#else
 #include <io.h>
+#endif
 #endif
 
 #include "dispel.h"
 
-void usage(void)
-{
-	printf("\nDisPel v1 by James Churchill/pelrun (C)2001-2011\n"
-		"65816/SNES Disassembler\n"
-		"Usage: dispel [-n] [-t] [-h] [-l] [-s] [-i] [-a] [-x] [-e] [-p]\n"
-		"              [-b <bank>|-r <startaddr>-<endaddr>] [-g <origin>]\n"
-		"              [-d <width>] [-o <outfile>] <infile>\n\n"
-		"Options: (numbers are hex-only, no prefixes)\n"
-		" -n                Skip $200 byte SMC header\n"
-		" -t                Don't output addresses/hex dump.\n"
-		" -h/-l             Force HiROM/LoROM memory mapping.\n"
-		" -s/-i             Force enable/disable shadow ROM addresses (see readme.)\n"
-		" -a                Start in 8-bit accumulator mode. Default is 16-bit.\n"
-		" -x                Start in 8-bit X/Y mode. Default is 16-bit.\n"
-		" -e                Turn off bank-boundary enforcement. (see readme.)\n"
-		" -p                Split subroutines by placing blank lines after RTS,RTL,RTI\n"
-		" -b <bank>         Disassemble bank <bank> only. Overrides -r.\n"
-		" -r <start>-<end>  Disassemble block from <start> to <end>.\n"
-		"                     Omit -<end> to disassemble to end of file.\n"
-		" -g <origin>       Set origin of disassembled code (see readme.)\n"
-		" -d <width>        No disassembly - produce a hexdump with <width> bytes/line.\n"
-		" -o <outfile>      Set file to redirect output to. Default is stdout.\n"
-		" <infile>          File to disassemble.\n");
-}
+int silent_mode=0,verbose_mode=0,patch_mode=0;
 
-/* Snes9x Hi/LoROM autodetect code */
+// Implementierung der usage-Funktion
+void Usage(void) {
+    printf("\nDisPel - DEADC0DE Special Edition\n");
+    printf("Usage: dispel [options] <infile>\n");
+    printf("Options:\n");
+    printf("  -n                Skip $200 byte SMC header.\n");
+    printf("  -t                Don't output addresses/hex dump.\n");
+    printf("  -v                Verbose: More detailed output.\n");
+    printf("  -s                Silent: No output.\n");
+    printf("  -h/-l             Force HiROM/LoROM memory mapping.\n");
+    printf("  -a                Start in 8-bit accumulator mode.\n");
+    printf("  -x                Start in 8-bit X/Y mode.\n");
+    printf("  -e                Disable bank-boundary enforcement.\n");
+    printf("  -d <width>        Produce a hexdump with <width> bytes/line.\n");
+    printf("  -o <outfile>      Set output file. Default is stdout.\n");
+    printf("  <infile>          File to disassemble.\n\n");
+    exit(1);
+}
 
 int AllASCII(unsigned char *b, int size)
 {
@@ -57,6 +54,14 @@ int AllASCII(unsigned char *b, int size)
 	return 1;
 }
 
+unsigned long ConvertToFastROM(unsigned long address) {
+    return address | 0x800000; // Setzt das FastROM-Bit
+}
+
+unsigned long ConvertToSlowROM(unsigned long address) {
+    return address & ~0x800000; // Entfernt das FastROM-Bit
+}
+
 int ScoreHiROM(unsigned char *data)
 {
 	int score = 0;
@@ -65,7 +70,7 @@ int ScoreHiROM(unsigned char *data)
 	{
 		score += 2;
 	}
-	
+
 	if (data[0xFFDA] == 0x33)
 	{
 		score += 2;
@@ -90,7 +95,7 @@ int ScoreHiROM(unsigned char *data)
 	{
 		score -= 1;
 	}
-	
+
 	return (score);
 }
 
@@ -130,21 +135,18 @@ int ScoreLoROM(unsigned char *data)
 	return (score);
 }
 
-int hexdump(unsigned char *data,unsigned long pos,unsigned long rpos,
-			unsigned long len,char *inst, unsigned char dwidth)
+int hexdump(unsigned char *data,unsigned long pos,unsigned long rpos, unsigned long len,char *inst, unsigned char dwidth)
 {
 	int i;
-
-	sprintf(inst, "%02lX/%04lX:\t", (pos >> 16) & 0xFF, pos & 0xFFFF);
-	for(i=0; i<dwidth && i+rpos<len; i++)
-	{
-		sprintf(inst + i*2 + 9, "%02X", data[rpos+i]);
-	}
-	return dwidth;
+    sprintf(inst, "%02lX/%04lX:\t", (pos >> 16) & 0xFF, pos & 0xFFFF);
+    for(i=0; i<dwidth && i+rpos<len; i++)
+    {
+    	sprintf(inst + i*2 + 9, "%02X", data[rpos+i]);
+    }
+    return dwidth;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	FILE *fin,*fout;
 	char infile[BUFSIZ],outfile[BUFSIZ],inst[521];
 	unsigned char dmem[4],flag=0,*data;
@@ -155,146 +157,122 @@ int main(int argc, char *argv[])
 
 	outfile[0]=0;
 
-	// Parse the commandline
+    if (argc < 2) {
+        Usage();
+    }
 
-	if (argc < 2)
-	{
-		usage();
-		exit(1);
-	}
+    for (i = 1; i < (argc - 1); i++) {
+        if (sscanf(argv[i], "-%c", &opt) == 0) {
+            Usage();
+        }
 
-	for (i=1; i<(argc-1); i++)
-	{
-		if (sscanf(argv[i], "-%c", &opt) == 0)
-		{
-			usage();
-			exit(1);
-		}
-		
-		switch(opt)
-		{
-		case 'n':
-			skip = 1;
-			break;
-		case 't':
-			tsrc |= 1;
-			break;
-		case 'h':
-			hirom = 1;
-			break;
-		case 'l':
-			hirom = 0;
-			break;
-		case 's':
-			shadow = 1;
-			break;
-		case 'i':
-			shadow = 0;
-			break;
-		case 'a':
-			flag |= 0x20;
-			break;
-		case 'x':
-			flag |= 0x10;
-			break;
-		case 'e':
-			bound = 0;
-			break;
-		case 'p':
-			tsrc |= 2;
-			break;
-		case 'd':
-			i++;
-			if ((sscanf(argv[i], "%2X", &dwidth) == 0) || dwidth==0)
-			{
-				usage();
-				printf("\n-d requires a hex value between 01 and FF after it.\n");
-				exit(1);
-			}
-			break;
-		case 'b':
-			i++;
-			if (sscanf(argv[i], "%2X", &bank) == 0)
-			{
-				usage();
-				printf("\n-b requires a 1-byte hex value after it.\n");
-				exit(1);
-			}
-			break;
-		case 'r':
-			i++;
-			if (sscanf(argv[i], "%6lX-%6lX", &start, &end) == 0)
-			{
-				usage();
-				printf("\n-a requires at least one hex value after it.\n");
-				exit(1);
-			}
-			break;
-		case 'g':
-			i++;
-			if (sscanf(argv[i], "%6lX", &origin) == 0)
-			{
-				usage();
-				printf("\n-r requires one hex value after it.\n");
-				exit(1);
-			}
-			break;
-		case 'o':
-			i++;
-			strcpy(outfile, argv[i]);
-			break;
-		default:
-			usage();
-			printf("\nUnknown option: -%c\n", opt);
-			exit(1);
-		}
-	}
+        switch (opt) {
+            case 'n':
+                skip = 1;
+                break;
+            case 't':
+                tsrc |= 1;
+                break;
+            case 'v':
+                verbose_mode = 1;
+                break;
+            case 's':
+                silent_mode = 1;
+                break;
+            case 'h':
+                hirom = 1;
+                break;
+            case 'l':
+                hirom = 0;
+                break;
+            case 'a':
+                flag |= 0x20;
+                break;
+            case 'x':
+                flag |= 0x10;
+                break;
+            case 'e':
+                break;
+            case 'p':
+                tsrc |= 2;
+                break;
+            case 'd':
+                i++;
+                if ((sscanf(argv[i], "%2X", &dwidth) == 0) || dwidth == 0) {
+                    Usage();
+                }
+                break;
+            case 'b':
+                i++;
+                if (sscanf(argv[i], "%2X", &bank) == 0) {
+                    Usage();
+                }
+                break;
+            case 'r':
+                i++;
+                if (sscanf(argv[i], "%6lX-%6lX", &start, &end) == 0) {
+                    Usage();
+                }
+                break;
+            case 'g':
+                i++;
+                if (sscanf(argv[i], "%6lX", &origin) == 0) {
+                    Usage();
+                }
+                break;
+            case 'o':
+                i++;
+                strcpy(outfile, argv[i]);
+                break;
+            default:
+                Usage();
+        }
+    }
 
-	// Get the input filename and open it
-	strcpy(infile, argv[i]);
-	fin = fopen(infile, "rb");
-	if (!fin)
-	{
-		printf("Cannot open %s for reading.\n", infile);
-		exit(1);
-	}
+    strcpy(infile, argv[i]);
+    fin = fopen(infile, "rb");
+    if (!fin) {
+        if (!silent_mode)
+            printf("Cannot open %s for reading.\n", infile);
+        exit(1);
+    }
 
-	// Set up the output
-	if (outfile[0] == 0)
-	{
-		strcpy(outfile,"STDOUT");
-		fout = stdout;
-	}
-	else
-	{
-		fout = fopen(outfile, "w");
-		if (!fout)
-		{
-			printf("Cannot open %s for writing.\n",outfile);
-			exit(1);
-		}
-	}
+    if (outfile[0] == 0) {
+        strcpy(outfile, "STDOUT");
+        fout = stdout;
+    } else {
+        fout = fopen(outfile, "w");
+        if (!fout) {
+            if (!silent_mode)
+                printf("Cannot open %s for writing.\n", outfile);
+            exit(1);
+        }
+    }
 
-	// Read the file into memory
-#ifndef _WIN32
-	fseek(fin, 0L, SEEK_END);
+#if defined(__APPLE__) || defined(__linux__)
+	fseek(fin, 0L, SEEK_END); //Apple and linux code
 	len = ftell(fin);
 	fseek(fin, 0L, SEEK_SET);
 #else
-	len = filelength(fileno(fin));
+	len = filelength(fileno(fin)); //Windows code
 #endif
 
-	// Make sure the image is big enough
+    if (len <= 392) {
+        if (verbose_mode && !silent_mode)
+            printf("File size <= 392 bytes. Activating 'Action Replay Patch Mode'.\n");
 
-	if (len < 0x8000 || (skip == 1 && len < 0x8200))
-	{
-		printf("This file looks too small to be a legitimate rom image.\n");
-	}
+        patch_mode = 1;
+    }
+    else if (len < 0x8000 || (skip == 1 && len < 0x8200)) {
+        if (!silent_mode)
+            printf("This file looks too small to be a legitimate ROM image.\n");
+    }
 
 	// Allocate mem for file. Extra 3 bytes to prevent segfault during memcpy
 	if ((data = malloc(len+3)) == NULL)
 	{
-		printf("Cant alloc %ld bytes.\n", len+3);
+	    if (!silent_mode)
+			printf("Cant alloc %ld bytes.\n", len+3);
 		exit(1);
 	}
 	if (skip)
@@ -302,7 +280,7 @@ int main(int argc, char *argv[])
 		len -= 0x200;
 		fread(data, 0x200, 1, fin);
 	}
-	
+
 	fread(data, len, 1, fin);
 	fclose(fin);
 
@@ -333,7 +311,7 @@ int main(int argc, char *argv[])
 	{
 		shadow = 1;
 	}
-	
+
 	// If HiROM addresses given, convert to normal and set hirom on.
 	if ((bank == 0x100 && start & 0x400000) | (bank & 0x40))
 	{
@@ -413,18 +391,18 @@ int main(int argc, char *argv[])
 		pos |= 0x400000;
 	}
 
-#ifdef _DEBUG
-	fprintf(stderr,"Start: $%06X End: $%06X Pos: $%06X\n", start, end, pos);
-	fprintf(stderr,"Input: %s\nOutput: %s\n", infile, outfile);
-	if(shadow)
-	{
-		fprintf(stderr,"Autodetected FastROM.\n");
+	if (verbose_mode && !silent_mode) {
+    	fprintf(stderr,"Start: $%06lX End: $%06lX Pos: $%06lX\n", start, end, pos);
+    	fprintf(stderr,"Input: %s\nOutput: %s\n", infile, outfile);
+    	if(shadow)
+    	{
+    		fprintf(stderr,"Autodetected FastROM.\n");
+    	}
+    	else
+    	{
+    		fprintf(stderr,"Autodetected SlowROM.\n");
+    	}
 	}
-	else
-	{
-		fprintf(stderr,"Autodetected SlowROM.\n");
-	}
-#endif
 
 	// Begin disassembly
 
@@ -434,6 +412,40 @@ int main(int argc, char *argv[])
 	{
 		// copy some data to the staging area
 		memcpy(dmem, data+rpos, 4);
+
+        // deadcode patch handler
+        if (rpos == 0 && rpos + 7 < len && patch_mode) {
+            // deadcode patch check
+            if (data[rpos] == 0xDE && data[rpos + 1] == 0xAD &&
+                data[rpos + 2] == 0xC0 && data[rpos + 3] == 0xDE) {
+
+                // extracting address and length
+                unsigned long bank_shifted = (unsigned long)data[rpos + 4] << 16;
+                unsigned long high_offset_shifted = (unsigned long)data[rpos + 5] << 8;
+                unsigned long low_offset = (unsigned long)data[rpos + 6];
+                unsigned long address = bank_shifted | high_offset_shifted | low_offset;
+
+                unsigned char length = data[rpos + 7];
+                unsigned long actual_bytes = len - rpos - 8;
+                unsigned long max_bytes = length ? (length * 4) : 0;
+
+                // output information
+                if (!silent_mode)
+                    printf("; Action Replay dead code patches %lu bytes from 0x%06lX:\n", length == 0 ? actual_bytes : max_bytes, address);
+                if (!silent_mode && !length)
+                    printf("; No length defined. Dynamic mode.\n");
+
+                if (max_bytes && (actual_bytes != max_bytes)) {
+                    // show warning if patch length missmatch
+                    if (!silent_mode)
+                        printf("; Warning: Patch length (%lu bytes) mismatch. Allowed length: %lu bytes.\n", actual_bytes, max_bytes);
+                }
+
+                rpos += 8;  // Magic Word (4) + Address (3) + Length (1)
+                pos = address;
+                continue;
+            }
+        }
 
 		// disassemble one instruction, or produce one line of hexdump
 		if (dwidth == 0)
@@ -483,7 +495,7 @@ int main(int argc, char *argv[])
 		}
 
 		fprintf(fout, "%s\n", inst);
-		
+
 		// Move to next instruction
 		if (!hirom && ((pos & 0xFFFF) + offset) > 0xFFFF)
 		{
@@ -500,4 +512,3 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
-
