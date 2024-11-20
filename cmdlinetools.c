@@ -72,7 +72,7 @@ void set_flag(const char *name, const char *value) {
                 printf("Error: Parameter -%s does not accept values.\n", name);
                 exit(1);
             }
-            if (!value && flag_params[i].valid_values) {
+            else if (!value && flag_params[i].valid_values) {
                 printf("Error: Missing option for parameter -%s.\nValid options: ", name);
                 for (int p = 0; p < flag_params[i].num_options; p++) {
                     printf("\n  - %s\t%s", flag_params[i].valid_values[p].name, flag_params[i].valid_values[p].help_text);
@@ -80,7 +80,7 @@ void set_flag(const char *name, const char *value) {
                 printf("\n");
                 exit(1);
             }
-            else if ((!value && flag_params[i].valid_values) || (flag_params[i].required == 1 && !validate_value(flag_params[i].num_options, flag_params[i].valid_values, value))) {
+            else if (flag_params[i].required != -1 && flag_params[i].valid_values && !validate_value(flag_params[i].num_options, flag_params[i].valid_values, value)) {
                 printf("Error: Invalid option '%s' for parameter -%s.\nValid options: ", value, name);
                 for (int p = 0; p < flag_params[i].num_options; p++) {
                     printf("\n  - %s\t%s", flag_params[i].valid_values[p].name, flag_params[i].valid_values[p].help_text);
@@ -184,11 +184,11 @@ void process_args(int argc, char *argv[]) {
             int no_parameter_following = ((i + 1) < argc) && (argv[i + 1][0] != '-');
             int no_string_following = ((i + 1) < argc) && (argv[i + 1][0] != '"' || argv[i + 1][0] != '\'');
             int is_penultimate = ((i + 1) == (argc - 1));
-            int no_file_following = (!file_required() && !is_penultimate);
+            int file_following = (file_required() && is_penultimate);
             if (strchr(name, '=') != NULL) {
                 value = strchr(name, '=') + 1;
                 *strchr(name, '=') = '\0';
-            } else if (no_parameter_following && no_string_following && no_file_following) {
+            } else if (no_parameter_following && no_string_following && !file_following) {
                 value = argv[++i];
             }
             if (value) {

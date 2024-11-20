@@ -76,7 +76,7 @@ void disassemble(FILE **fout, unsigned char **data, unsigned long len, unsigned 
     int output_hexdump = (strcmp(option(FORMAT), "hexdump") == 0);
     while (rpos < len && rpos <= end) {
         // Handle dead code patch if applicable
-        if (pos == 0 && !output_hexdump && flagged(AR_PATCH_MODE) && handleDeadCodePatch(data, len, &rpos, &pos)) {
+        if (pos == 0 && !output_hexdump && flagged(AR_PATCH_MODE) && handleDeadCodePatch(fout, data, len, &rpos, &pos)) {
             continue; // Skip to next iteration if a patch was handled
         }
 

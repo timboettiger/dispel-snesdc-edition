@@ -98,7 +98,7 @@
  void calculateAddressOptions(unsigned char **data, unsigned long *start, unsigned long *end, unsigned long *pos, unsigned long origin, unsigned char *hirom, unsigned char *shadow, unsigned int *bank, unsigned long len);
 
  // patchtools.c
- int handleDeadCodePatch(unsigned char **data, unsigned long len, unsigned long *rpos, unsigned long *pos);
+ int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, unsigned long *rpos, unsigned long *pos);
 
  // disassembler.c
  int process_file(void);

@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include "dispel.h"
 
-int handleDeadCodePatch(unsigned char **data, unsigned long len, unsigned long *rpos, unsigned long *pos) {
+int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, unsigned long *rpos, unsigned long *pos) {
     // Check if there's enough data for a dead code patch header
-    printf("noooo");
     if (*rpos + 7 >= len) {
         return 0; // Not enough data, no patch handled
     }
@@ -22,12 +21,12 @@ int handleDeadCodePatch(unsigned char **data, unsigned long len, unsigned long *
 
         // Output patch information if not in silent mode
         if (!flagged(SILENT)) {
-            printf("; Action Replay dead code patches %lu bytes from 0x%06lX:\n", length == 0 ? actual_bytes : max_bytes, address);
+            fprintf(*fout, "; Action Replay dead code patches %lu bytes from 0x%06lX:\n", length == 0 ? actual_bytes : max_bytes, address);
             if (length == 0) {
-                printf("; No length defined. Dynamic mode.\n");
+                fprintf(*fout, "; No length defined. Dynamic mode.\n");
             }
             if (max_bytes && (actual_bytes != max_bytes)) {
-                printf("; Warning: Patch length (%lu bytes) mismatch. Allowed length: %lu bytes.\n",
+                fprintf(*fout, "; Warning: Patch length (%lu bytes) mismatch. Allowed length: %lu bytes.\n",
                        actual_bytes, max_bytes);
             }
         }
