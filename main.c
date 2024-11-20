@@ -23,7 +23,7 @@
 int main(int argc, char *argv[]) {
     set_program_name("dispel", "DisPel", "DEADC0DE Edition");
     set_version("1.1.0");
-    set_copyright("Copyright (c) 2000 James Churchill\nCopyright (c) 2024 Tim Böttiger");
+    set_copyright("Copyright (c) 2001 James Churchill\nCopyright (c) 2024 Tim Böttiger");
 
     ParamOption format_values[] = {
         {"standard", "address, hexdump, opcode with operand"},
