@@ -183,3 +183,47 @@ void extract_placeholder(const char *descriptionTemplate, char *placeholder) {
         i++;
     }
 }
+
+int hexdump(unsigned char **data,unsigned long pos,unsigned long rpos, unsigned long len,char *inst, unsigned char dwidth)
+{
+	int i;
+    sprintf(inst, "%02lX/%04lX:\t", (pos >> 16) & 0xFF, pos & 0xFFFF);
+    for(i=0; i<dwidth && i+rpos<len; i++)
+    {
+    	sprintf(inst + i*2 + 9, "%02X", (*data)[rpos+i]);
+    }
+    return dwidth;
+}
+
+int AllASCII(unsigned char *b, int size)
+{
+	int i;
+	for (i = 0; i < size; i++)
+	{
+		if (b[i] < 32 || b[i] > 126)
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+unsigned long getFileLength(FILE **fin) {
+    #if defined(__APPLE__) || defined(__linux__)
+        fseek(*fin, 0L, SEEK_END);
+        unsigned long len = ftell(*fin);
+        fseek(*fin, 0L, SEEK_SET);
+    #else
+        unsigned long len = filelength(fileno(*fin));
+    #endif
+    return len;
+}
+
+unsigned char *allocateMemory(unsigned long len) {
+    unsigned char *data = malloc(len + 3);
+    if (!data) {
+        printf("Cannot allocate memory.\n");
+        exit(1);
+    }
+    return data;
+}

@@ -29,7 +29,6 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	int offset,sval,i;
 
 	// Parse out instruction mnemonic
-
 	switch (mem[0])
 	{
 		// ADC
@@ -1024,21 +1023,17 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     process_template(explanation, operand, temp, sizeof(temp));
     strncpy(explanation, temp, sizeof(explanation));
 
-    // Generate whole disassembly line
-	if(!(tsrc & 1))
-	{
-    	column address = {3, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos&0xFFFF)};
-        column hexcode = {3, hbuf};
-        column opcode = {4, format("%s %s", ibuf, pbuf)};
-        column description = {0, explanation};
-        sprintf(inst, "%s", table(4, address, hexcode, opcode, description));
-	}
-	else
-	{
-        column opcode = {4, format("%s %s", ibuf, pbuf)};
-        column description = {0, explanation};
-        sprintf(inst, "%s", table(2, opcode, description));
-	}
+   	column address = {3, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos&0xFFFF)};
+    column hexcode = {3, hbuf};
+    column machinecode = {4, format("%s %s", ibuf, pbuf)};
+    column description = {0, explanation};
+
+    if (strcmp(option(FORMAT), "standard") == 0)
+        sprintf(inst, "%s", table(3, address, hexcode, machinecode));
+    else if (strcmp(option(FORMAT), "assembler") == 0)
+        sprintf(inst, "%s", table(1, machinecode));
+    else if (strcmp(option(FORMAT), "annotated") == 0)
+        sprintf(inst, "%s", table(4, address, hexcode, machinecode, description));
 
 	return offset;
 }

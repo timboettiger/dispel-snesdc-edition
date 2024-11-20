@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS=-Wall -O2
+CFLAGS=-Wall -O2 -Wno-strict-prototypes
 LDFLAGS=
-SOURCES=main.c 65816.c describe.c helper.c
+SOURCES=main.c 65816.c describe.c helper.c cmdlinetools.c romtools.c patchtools.c disassembler.c
 OBJECTS=$(SOURCES:.c=.o)
 CAN_INSTALL = no
 ifeq ($(OS),Windows_NT)
