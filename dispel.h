@@ -6,6 +6,8 @@
  #include <ctype.h>
  #include <stdio.h>
 
+ static const char *version = "1.1.0";
+
  enum Parameter {
      INPUT_FILE = -1,
      SKIP_HEADER = 0,

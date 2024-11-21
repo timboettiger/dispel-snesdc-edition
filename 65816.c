@@ -927,7 +927,7 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	case 0x42:
 		// Stack/Interrupt
 	case 0x00:
-	    if (patch_mode)
+	    if (flagged(AR_PATCH_MODE))
 		{
 			offset = 1;
 			break;

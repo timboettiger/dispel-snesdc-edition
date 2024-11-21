@@ -1,161 +1,120 @@
-# DisPel v1.0d - DEADC0DE Edition
+
+# DisPel v1.1.0 - DEADC0DE Edition
 
 - (C) 2001 by James Churchill of Naruto, <pelrun@gmail.com>
 - (C) 2024 DEADC0DE Edition by Tim Böttiger, <timboettiger@gmail.com>
 
 ## 65816 Action Replay Dialect Disassembler
 
-This is DisPel, the 65816 disassembler developed by Palrun. It's not nearly as "full-featured" as Tracer (for instance, it's not really for use with NES roms), but it does everything I need it to. And since it only took a day to write (most of which was working on the commandline parser, not the disassembler itself!) I wonder why I didn't do it ages ago.
+DisPel is a 65816 disassembler originally developed by James Churchill. While it is not as fully featured as tools like Tracer (e.g., it is not suitable for NES ROMs), it serves many specific purposes.
 
-The following adjustments were implemented:
+The DEADC0DE Edition includes special modifications to disassemble specific "dead codes". These codes are significantly shorter than ROM files, lack headers, and contain unique quirks in their opcode dialect.
 
-- Support for macOS/Linux binaries as a target (Makefile target)
-- Removal of the enforcement of minimum binary data length
-- Splitting the `-t` parameter into `-A` and `-H` to allow output with hex code but without addresses
-- Removal of the operand from the `brk` opcode
-- Addition of a license
-
-> **Important:** Due to the very specific adjustments, the implementation no longer conforms to the 65816 instruction set. Therefore, the disassembler is no longer suitable for disassembling ROMs. Please use (James’s original implementation)[https://github.com/pelrun/Dispel] for that purpose.
-
-## DEADC0DE Edition
-
-The Dead Code Edition includes very special adjustments to disassemble specific dead codes. These codes are not as long as a ROM; instead, they are significantly shorter, lack headers, and exhibit minor peculiarities in their opcode dialect. These dead codes were used in Action Replay MK II and MK III cheat devices and remained unknown for a long time.
-
-More details can be found in the corresponding [GitHub project](https://github.com/timboettiger/action-replay-mk-iii/blob/master/deadc0de-story.md).
+The highlight of the Edition is a new feature called *Annotions*. It helps analyzing the assembler code by providing detailed opcode annotations as well as a analysis of operands.
 
 ## Features
 
-- Able to disassemble a section of a rom, or a whole bank. Or all of it :)
-- Correct `REP`/`SEP` instruction handling.
-- Correct bank-boundary handling.
-- Automatic (but overridable) HiROM and LoROM support.
-- Shadow ROM support.
-- User-specifiable listing origin (see below.)
-- True SNES addressing - no need to worry about LoROM-offset conversion or headers.
-- `Control-C` *will* stop it!
+**General:**
 
-### True SNES addressing
+- Disassemble specific ROM sections, a single bank, or the entire file
+- Correct handling of `REP`/`SEP` instructions
+- Accurate bank-boundary handling
+- Automatic (but overridable) HiROM and LoROM detection
+- Shadow ROM support
+- User-defined listing origin (see below)
+- Native SNES addressing support—no manual LoROM-offset conversion or header adjustments required
+- Immediate cancellation with `Control-C`
 
-Now you no longer need to worry about converting to-from LoROM addresses to disassemble the code you want - just enter the SNES bank/addresses you want, and DisPel does the conversion automatically. If the ROM has an SMC header then skip it with the `-n` option.
+**DEADC0DE Support:**
 
-And now that you can select any section of the rom to disassemble, you don't have to worry about a 20MB+ file containing "disassembled" graphics data, which is just a waste of space.
+- Support for macOS/Linux binaries as targets (Makefile targets)
+- More flexible validation of the minimum binary data length
+- Assembler annotation generator
+- Various output formatting themes (hexcode, assembler, annotated)
+- Dynamic patch mode detection
+- Disabled `brk` opcode operand in patch mode
+- BSD license
 
-Addresses/banks are specified using plain hex - no `$` or `0x` prefixes added.
+### DEADC0DE Edition
 
-HiROM addressing is switched on using the `-h` option. Use inSNESt or a similar utility to determine whether it's needed.
+When a dead code is being detected, the following message will be generated above the assembler instructions. It contains the length (bytes) of the patch, as well as the memory target where the patch will be injected or inserted.
 
-v0.91 update: I've replaced the half-assed HiROM support with a newer half-assed version. Specifying HiROM addresses (bank `$40-$6F` and `$C0-$EF`) will switch HiROM on automatically, and HiROM listings use the correct banks now (instead of bank `$00+`).
-
-v0.95 update: HiROM is now detected automatically. If DisPel gets it wrong, you can use  the `-h`/`-l` options to force HiROM/LoROM modeS respectively.
-
-You can disassemble a single bank using the `-b` option. e.g.
-
-```bash
-dispel -b 1D rom.bin
+```assembler
+; Action Replay dead code patches 36 bytes from 0xC0025C:
 ```
 
-Will disassemble from $1D8000 to $1DFFFF.
+In case the patch length is not defined within the patch header, it will be calculated. This is shown as follows:
 
-```bash
-dispel -b 1D -h rom.bin
+```assembler
+; No length defined. Dynamic mode.
 ```
 
-Will disassemble from $1D0000 to $1DFFFF.
+In some cases the (specified!) patch length does not match the real length. If so, a warning will be displayed:
 
-Address ranges can be specified using the "-r" option. If the end address is omitted, the disassembly will proceed from the supplied address to the end of the file. e.g.
-
-```bash
-dispel -r 58600-79700 rom.bin
+```assembler
+; Warning: Patch length (28 bytes) mismatch. Allowed length: 36 bytes.
 ```
 
-Will disassemble the range $58600 to $79700... only the valid LoROM banks, of course :)
+Dead codes were historically used in Action Replay MK II and MK III cheat devices and remained undocumented for years.
 
-```bash
-dispel -r 58600 rom.bin
+More details about this can be found in the associated [GitHub project](https://github.com/timboettiger/action-replay-mk-iii/blob/master/deadc0de-story.md).
+
+### Annotations
+
+Annotations are appending detailed annotations as well as a analysis of operands each line after the asm code.
+
+```assembler
+; Action Replay dead code patches 24 bytes from 0x02FC7A:
+02/FC7A:    08        php                ; Push processor status onto stack.
+02/FC7B:    E220      sep #$20           ; Set processor flags to 00100000 (binary representation of '32').
+02/FC7D:    A928      lda #$28           ; Load accumulator with value from constant '40'.
+02/FC7F:    8D9603    sta $0396          ; Store accumulator at SPC700 RAM (Work RAM) (at 0x0396).
+02/FC82:    A905      lda #$05           ; Load accumulator with value from constant '5'.
+02/FC84:    8DAD15    sta $15AD          ; Store accumulator at SPC700 RAM (Mirror) (at 0x15AD).
+02/FC87:    28        plp                ; Pull processor status from stack.
+02/FC88:    6468      stz $68            ; Store zero at 0x68.
+02/FC8A:    6469      stz $69            ; Store zero at 0x69.
+02/FC8C:    5C7EFC02  jmp $02FC7E        ; Jump to Hardware Registers and I/O Ports (at 0x02FC7E).
+02/FC90:    00        brk                ; Force break.
+02/FC91:    00        brk                ; Force break.
 ```
 
-Will disassemble from $58600 onwards.
+**Features:**
 
-### Correct REP/SEP state parsing
+- Description of all SNES opcodes by symbol mapping
+- Conversion of hexadecimal numbers to decimal representation
+- Conversion of flags to binary and decimal representation
+- Mapping of well known registers, interrupts and memory sections
 
-As a byproduct of the need to maintain backward compatibility with the 6502, certain opcodes take either a 1-byte or a 2-byte operand. Which is used is dictated by processor state flags, and so is software selectable. This is a problem with disassembly because normally the disassembler does not know which version of the instruction to use. This leads to the instruction alignment being lost and gibberish instructions being output.
+### True SNES Addressing
 
-Tracer tried to address the problem by maintaining similar state flags, and updating them when an instruction that would normally alter them is disassembled. Unfortunately, it didn't do it correctly for all the instructions that are affected. DisPel however should produce a correct listing for a subroutine when the state is set properly at the start.
+DisPel simplifies disassembly by automatically handling SNES bank/address conversions. Users can specify addresses directly in SNES format, and the tool manages the details. If the ROM contains an SMC header, it can be skipped using the `-n` option.
 
-Since most 65816 code I've seen explicitly sets the size flags at the beginning of each subroutine, you needn't worry about it a lot of the time. However, if you are disassembling a small block where the flags are set differently at the beginning, you can affect the initial state of the flags using the "-a" and "-x" options.
+For disassembly tasks requiring specific sections of a ROM, address ranges and banks can be defined explicitly, avoiding unnecessarily large outputs filled with disassembled graphics data.
 
-`-a` forces 8-bit accumulator mode.
-`-x` forces 8-bit X/Y register mode.
+HiROM addressing is enabled using the `-h` option. Tools like inSNESt can help determine whether HiROM addressing is needed.
 
-DisPel defaults to 16-bit accumulator and X/Y register mode.
+### Correct REP/SEP State Parsing
 
-Of course, this only applies at the beginning of the listing. Subsequent REP and SEP commands will alter the states appropriately.
+Due to the 65816's backward compatibility with the 6502, certain opcodes can use either a 1-byte or 2-byte operand, depending on processor flags. DisPel maintains and updates these state flags during disassembly, ensuring alignment and preventing gibberish output.
 
-### Bank-boundary handling
+Options like `-a` (8-bit accumulator mode) and `-x` (8-bit X/Y register mode) allow users to specify the initial state explicitly. By default, DisPel assumes 16-bit accumulator and X/Y register mode.
 
-SNES code doesn't run across bank boundaries. It might in a HiROM (though I doubt it), but never ever in a LoROM image. So the disassembler shouldn't place instructions that straddle the bank boundary. If that happens, then the instruction alignment is definitely compromised, as one or more bytes are "eaten" at the start of the next bank that shouldn't be. This results in an incorrect listing at the start of the bank, which continues until the disassembler (through pure luck) re-establishes the alignment.
+### Bank-Boundary Handling
 
-This was of great concern in Tracer, which had woeful support for disassembling sections of a ROM. If it didn't get it right (and you were bound to have some banks that started like this) then replacing them with a correct listing was a real pain.
+DisPel enforces SNES bank boundaries to ensure accurate disassembly. If an instruction crosses a bank boundary, it is ignored, and the remaining bytes are displayed as raw data. Users can disable this enforcement with the `-d` option.
 
-So in DisPel I enforced the bank boundaries. If an disassembled instruction would go over a boundary then it is ignored. The surplus bytes up to the boundary are displayed without an accompanying instruction, and disassembly continues at the boundary onwards.
+### Shadow ROM Support
 
-Just in case I'm completely wrong about the boundary-crossing on HiROMs, you can disable the enforcement using the -d option. But I suggest leaving it on to start with.
+Shadow ROM, or FastROM, is a feature of SNES hardware where ROM data is mirrored at higher banks for faster access. DisPel supports Shadow ROM addressing, ensuring consistency in listings by mapping the addresses correctly. This is especially useful for FastROM code with addresses above `$800000`.
 
-### Shadow ROM support
+FastROM is detected automatically, but users can enable or disable it manually with the `-s` or `-i` options.
 
-Shadow ROM is a feature of the SNES hardware - the entire rom image is mirrored at bank 80 onwards. When game code executes in those banks the hardware runs at a higher clock-rate than when it's running at the lower copy. (I think it's called FastROM and SlowROM in other documentation - for obvious reasons. Note I'm not talking about Fast/SlowROM *protection* here.)
+### User-Specified Origin Support
 
-65816 code is largely relocatable. However, long absolute addressing modes mean that most code *must* be run where it was assembled to run - it's origin. Therefore FastROM code won't work properly if attempted to be executed in the SlowROM banks and vice versa. Unfortunately, when you disassemble FastROM game code with the other tools, you get a listing based in the SlowROM banks, which gives you a very inconsistent view of the code - relative addresses point at expected places, but long jumps and the like all go somewhere completely unexpected!
+The `-g` option allows users to specify a custom origin address for disassembly. This is helpful for cases where code is copied and executed at a different location than its original position in the ROM.
 
-If you know what's going on, there's no problem. But it's still a hassle to have to worry about it. Therefore DisPel has the ability to produce a listing using the FastROM addresses. You'll know if you need it if you see JMP's going to addresses above `$800000`.
-
-For HiROMs, the SlowROM code begins at bank `$40`, and the FastROM copy at `$C0`.
-
-To turn it on, either specify the address range/bank in the `$80xxxx+` area directly, or use the `-s` option to convert the specified addresses to FastROM ones.
-
-v0.95 update: FastROM is detected automatically. You can force enable/disable it by using the `-s` and `-i` options. e.g.
-
-```bash
-dispel -b 02 -s rom.bin
-```
-
-Will disassemble bank 02 as bank 82.
-
-```bash
-dispel -b 82 rom.bin
-```
-
-Identical to above.
-
-```bash
-dispel -r 20000-2FFFF -s rom.bin
-```
-
-Will disassemble the region $20000-$2FFFF as $820000-$82FFFF.
-
-```bash
-dispel -r 820000-82FFFF rom.bin
-```
-
-Same as above.
-
-### User-specified origin support
-
-This is what I first meant to use to implement Shadow ROM support. I did it better above, but I decided to leave this in in case someone might find it useful.
-
-Not all SNES code is run where it is in the rom. Some of it is copied elsewhere then executed at the new location (the sound code does this, but that's a different discussion.) Such won't work at it's original location - the code is assembled to run somewhere else, and all absolute addresses will point to incorrect places. If you ever encounter something like this, the `-g` option will force DisPel to assume the code is assembled somewhere other than it's actual location. Relatively addressed operands will be altered to fit.
-
-You shouldn't need this. If you do, you'll probably understand what this does anyway. Otherwise, don't worry about it. e.g.
-```bash
-dispel -b 0 -g 30000 rom.bin
-```
-Disassemble LoROM bank `0` (`$8000-$FFFF`) as if it was really at `$30000-$37FFF`.
-
-### Miscellaneous
-
-You can output only the instructions (no address/hexdump fields) using the -t option.
-
-You can also place blank lines after RTS,RTI,RTL instructions using the `-p` option. This will help show where the subroutines start/end in the code.
+---
 
 ## Usage
 
@@ -167,40 +126,44 @@ Copyright (c) 2024 Tim Böttiger
 
 Usage: dispel [options] <inputfile>
 Parameters:
-    -n		        Skip $200 byte SMC header (optional).
-    -v		        Enable verbose mode (optional).
-    -s		        Enable silent mode (optional).
-    -f <format>	  Output formatting (optional, default: 'standard').
-                  Options:
-                    - standard	     address, hexdump, opcode with operand
-                    - hexdump	     hexdump only, specify width using -w
-                    - assembler	   opcode with operand
-                    - annotated	   address, hexdump, opcode with operand, annotation
-    -h		        Force HiROM memory mapping (optional).
-    -l		        Force LoROM memory mapping (optional).
-    -a		        Start in 8-bit accumulator mode (optional).
-    -x		        Start in 8-bit X/Y mode (optional).
-    -e		        Disable bank-boundary enforcement (optional).
-    -p		        Split subroutines by placing blank lines after RTS, RTL, RTI (optional).
-    -w <width>	  Produce a hexdump with <width> bytes/line (optional, default: '4').
-    -o [...]	    Set output channel (required, default: 'stdout').
-                  Options:
-                    - stdout	  stdout
-                    - <file>	  Set output <file>
+    -n              Skip $200 byte SMC header (optional)
+    -v              Enable verbose mode (optional)
+    -s              Enable silent mode (optional)
+    -f <format>     Output formatting (optional, default: 'standard')
+                    Options:
+                      - standard   address, hexdump, opcode with operand
+                      - hexdump    hexdump only, specify width using -w
+                      - assembler  opcode with operand
+                      - annotated  address, hexdump, opcode with operand, annotation
+    -h              Force HiROM memory mapping (optional)
+    -l              Force LoROM memory mapping (optional)
+    -a              Start in 8-bit accumulator mode (optional)
+    -x              Start in 8-bit X/Y mode (optional)
+    -e              Disable bank-boundary enforcement (optional)
+    -p              Split subroutines with blank lines after RTS, RTL, RTI (optional)
+    -w <width>      Set hexdump width in bytes per line (optional, default: 4)
+    -o <output>     Set output channel (default: stdout)
+                      - stdout      Output to standard output
+                      - <file>      Output to a file
 
-    <inputfile>	File to disassemble (required).
+    <inputfile>     File to disassemble (required)
 ```
 
-## Release history
+---
 
-- **v1.0d - 15/11/2024:** Split `-t` parameter up into `-A` and `-H` for adresses and hexdumps. Removed minimal size validation. Removed 1 byte operand from `brk`. Updated README.
-- **v1.0001 - 5/4/2011:** No code changes; put the source into roughly the code style I use nowadays before making the source public, and changed from a VC5 project to GCC/Make.
-- **v1.00 - 10/7/2002:** Fixed a stupid bug that made DisPel crash if the input file didn't exist. Lowercased the mnemonics. Changed the parameter format for `BRK` and `COP`
-- **v0.99 - 10/7/2001:** Fixed a couple of errors that prevented the 8-bit register options from working, as well as the shadow/hirom support. Also fixed a small error in this document; `-b` overrides `-r`, not `-a`.
-- **v0.96 - 3/2/2001:**  Turns out I was erroneously outputting ",X" for the "Direct Page Indirect Indexed, Y" and "Direct Page Indirect Long Indexed, Y" opcodes. That's 16 opcodes with incorrect output - Ouch. Thanks to Skeud for pointing it out.
-- **v0.95 - 19/11/2000:** Autodetects HiROM/LoROM and FastROM/SlowROM modes. Added option to put blank lines after `RTS`, `RTL`, `RTI` instructions. Added `-p` option to output raw assembly (minus address/hex data fields)
-- **v0.91 - 25/09/2000:** Fixed HiROM addressing to start from bank `$40` instead of `$00`. Serves me right for not looking up the HiROM docs...
-- **v0.9 - 24/09/2000:** Initial Release
+## Release History
+
+- **v1.1.0 - 21/11/2024:** Code refactoring, added dynamic patch mode detection, added annotation feature, enhanced Makefile.
+- **v1.0d - 15/11/2024:** Updated `-t` parameter handling, removed minimal size validation, and updated README.
+- **v1.0001 - 5/4/2011:** Source code adjustments for public release.
+- **v1.00 - 10/7/2002:** Bug fixes for missing input file handling.
+- **v0.99 - 10/7/2001:** Fixed register options and HiROM support issues.
+- **v0.96 - 3/2/2001:** Corrected operand formatting for certain opcodes.
+- **v0.95 - 19/11/2000:** Added HiROM and FastROM detection.
+- **v0.91 - 25/09/2000:** Fixed HiROM addressing.
+- **v0.9 - 24/09/2000:** Initial Release.
+
+---
 
 ## License
 
