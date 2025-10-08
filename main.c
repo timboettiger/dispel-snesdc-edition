@@ -1,7 +1,7 @@
 /* main.c
  * DisPel 65816 Disassembler
- * James Churchill
- * Created 20000924
+ * Created 240900 by James Churchill
+ * Updated 190924 by Tim Böttiger
  */
 
 #include <stdio.h>
@@ -23,7 +23,7 @@
 int main(int argc, char *argv[]) {
     set_program_name("dispel", "DisPel", "DEADC0DE Edition");
     set_version(version);
-    set_copyright("Copyright (c) 2001 James Churchill\nCopyright (c) 2024 Tim Böttiger");
+    set_copyright("Copyright (c) 2001 James Churchill\nCopyright (c) 2024-2025 Tim Böttiger");
 
     ParamOption format_values[] = {
         {"standard", "address, hexdump, opcode with operand"},

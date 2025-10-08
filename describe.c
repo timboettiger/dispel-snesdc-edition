@@ -1,3 +1,10 @@
+/* describe.c
+ * description generator for 65C816 opcodes and
+ * SNES memory-mapped registers
+ * Created 190924 by Tim Böttiger
+ * Last Modified 081025
+ */
+
 #include <string.h>
 #include <regex.h>
 #include <stdio.h>
@@ -5,11 +12,11 @@
 #include <stdlib.h>
 #include "dispel.h"
 
-// Gilt nur für 65C816 (SNES-CPU) – keine SPC700-RAM-Regeln enthalten.
+// 65C816 focussed translation table for memory-mapped registers
 TranslationEntry translationTable[] = {
-    // ---------------------------
+    // ---------------
     // PPU (2100–213F)
-    // ---------------------------
+    // ---------------
     {"^0x2100$", "INIDISP - Display Control"},
     {"^0x2101$", "OBSEL - Object Size and Data Area Designation"},
     {"^0x2102$", "OAMADDL - OAM Address (Low)"},
@@ -74,12 +81,12 @@ TranslationEntry translationTable[] = {
     {"^0x213D$", "OPVCT - Vertical Scanline Position"},
     {"^0x213E$", "STAT77 - PPU Status Flag"},
     {"^0x213F$", "STAT78 - PPU Status Flag"},
-    // Sammelregel, falls Einzeladressen oben nicht gepflegt werden:
+    // Fallback, in case specific addresses are missing:
     {"^0x21[0-3][0-9A-Fa-f]{2}$", "PPU Register (at @s)"},
 
-    // ---------------------------
+    // ---------------------------------
     // APU I/O (CPU-seitig) & WRAM-Ports
-    // ---------------------------
+    // ---------------------------------
     {"^0x2140$", "APUI0 - APU I/O Port 0"},
     {"^0x2141$", "APUI1 - APU I/O Port 1"},
     {"^0x2142$", "APUI2 - APU I/O Port 2"},
@@ -95,15 +102,15 @@ TranslationEntry translationTable[] = {
     {"^0x218A$", "S-RTC Control Register"},
     {"^0x218B$", "S-RTC Status Register"},
 
-    // ---------------------------
+    // --------------------
     // Joypad Latches (CPU)
-    // ---------------------------
+    // --------------------
     {"^0x4016$", "JOYSER0 - Joypad Port 1"},
     {"^0x4017$", "JOYSER1 - Joypad Port 2"},
 
-    // ---------------------------
+    // ------------------------------------------
     // CPU-Internal & Joypad Readback (4200–421F)
-    // ---------------------------
+    // ------------------------------------------
     {"^0x4200$", "NMITIMEN - Interrupt Enable Flags"},
     {"^0x4201$", "WRIO - Programmable I/O Port"},
     {"^0x4202$", "WRMPYA - Multiplicand"},
@@ -135,12 +142,12 @@ TranslationEntry translationTable[] = {
     {"^0x421D$", "JOY3H - Joypad 3 Data (High)"},
     {"^0x421E$", "JOY4L - Joypad 4 Data (Low)"},
     {"^0x421F$", "JOY4H - Joypad 4 Data (High)"},
-    // Sammelregel:
+    // Fallback, in case specific registers are missing:
     {"^0x42[0-1][0-9A-Fa-f]{2}$", "CPU/PPU I/O Register (at @s)"},
 
-    // ---------------------------
+    // --------------
     // Expansion Port
-    // ---------------------------
+    // --------------
     {"^0x4800$", "EXPANSION - Expansion Port Register 0"},
     {"^0x4801$", "EXPANSION - Expansion Port Register 1"},
     {"^0x4802$", "EXPANSION - Expansion Port Register 2"},
@@ -150,30 +157,30 @@ TranslationEntry translationTable[] = {
     {"^0x4806$", "EXPANSION - Expansion Port Register 6"},
     {"^0x4807$", "EXPANSION - Expansion Port Register 7"},
 
-    // ---------------------------
+    // ------------------------
     // DMA-Register (4300–437F)
-    // ---------------------------
+    // ------------------------
     {"^0x43[0-7][0-9A-Fa-f]{2}$", "DMA Register (Channel 0–7, at @s)"},
 
-    // ---------------------------
+    // ------------------------------
     // WRAM (7E/7F) & Low-WRAM-Mirror
-    // ---------------------------
+    // ------------------------------
     {"^0x7E[0-9A-Fa-f]{4}$", "Work RAM (WRAM) (at @s)"},
     {"^0x7F[0-9A-Fa-f]{4}$", "Mirror of WRAM (at @s)"},
-    // 16-bit Adressen (ohne Bank), wie sie häufig im Disasm gezeigt werden:
+    // 16-bit addresses (without bank)
     {"^0x0[0-1][0-9A-Fa-f]{3}$", "Low WRAM mirror ($7E:0000–$7E:1FFF) (at @s)"},
 
-    // ---------------------------
-    // Reset/Interrupt-Vektoren (Bank $00)
-    // (SNES nutzt diese Adressen unabhängig vom CPU-Emu/Native-Detail)
-    // ---------------------------
+    // ---------------------------------------------
+    // Reset/Interrupt-Vectors (Bank $00)
+    // (SNES usage depends on CPU-Emu/Native-Detail)
+    // ---------------------------------------------
     {"^0x00FFFA$", "NMI Vector"},
     {"^0x00FFFC$", "Reset Vector"},
     {"^0x00FFFE$", "IRQ/BRK Vector"},
 
-    // ---------------------------
-    // Instruktionsbeschreibungen (65C816)
-    // ---------------------------
+    // ------------------------------------
+    // description of instructions (65C816)
+    // ------------------------------------
     {"^adc$", "Add with carry to \\@s"},
     {"^and$", "Logical AND with \\@s"},
     {"^asl$", "Arithmetic shift left on \\@s"},

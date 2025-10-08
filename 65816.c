@@ -1,7 +1,6 @@
 /* 65816.c
  * 65816/6502 module for DisPel
- * James Churchill
- * Created 230900
+ * Created 230900 by James Churchill
  * Last Modified 240900
  */
 

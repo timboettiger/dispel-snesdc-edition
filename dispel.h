@@ -1,7 +1,6 @@
 /* dispel.h
  * Header file for DisPel
- * James Churchill
- * Created 240900
+ * Created 240900 by James Churchill
  */
  #include <ctype.h>
  #include <stdio.h>

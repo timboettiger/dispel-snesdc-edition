@@ -1,3 +1,9 @@
+/* cmdlinetools.c
+ * command line argument parsing and help system
+ * Created 190924 by Tim Böttiger
+ * Last Modified 190924
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

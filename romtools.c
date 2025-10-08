@@ -1,3 +1,9 @@
+/* main.c
+ * DisPel 65816 Disassembler
+ * Created 240900 by James Churchill
+ * Updated 190924 by Tim Böttiger
+ */
+
 #include "dispel.h"
 
 unsigned long ConvertToFastROM(unsigned long address) {

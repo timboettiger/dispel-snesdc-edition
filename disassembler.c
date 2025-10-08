@@ -1,3 +1,10 @@
+/* disassemler.c
+ * disassembler main loop
+ * Created 230900 by James Churchill
+ * Updated 190924 by Tim Böttiger
+ * Last Modified 081025
+ */
+
 #include <stdio.h>
 #include <memory.h>
 #include <stdlib.h>

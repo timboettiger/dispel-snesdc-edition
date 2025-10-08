@@ -1,3 +1,10 @@
+/* helper.c
+ * helper tool functions
+ * Created 230900 by James Churchill
+ * Updated 190924 by Tim Böttiger
+ * Last Modified 081025
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
