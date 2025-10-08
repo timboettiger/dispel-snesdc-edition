@@ -31,4 +31,5 @@ FlagParam force_shadow_bank =        {"b", 0,  1, NULL, " <bank>",           "Ha
 FlagParam force_shadow_region =      {"r", 0,  1, NULL, " <region>",         "Handle <region> $00000-$FFFFF as shadowed", 0, NULL};
 FlagParam rewrite_origin_addresses = {"g", 0,  1, NULL, " <origin>",         "Rewrite addresses to <origin>", 0, NULL};
 FlagParam output_channel =           {"o", -1, 0, "stdout", " [...]",        "Set output channel", 2, output_channels};
-FlagParam ar_patch_mode =            {"0", 0,  1, NULL, NULL,                "Enforce Action Replay Patch Mode", 0, NULL};
+FlagParam ar_patch_mode =            {"0", 0,  0, NULL, NULL,                "Enforce Action Replay Patch Mode", 0, NULL};
+FlagParam ar_auto_8bit =             {"8", 0,  0, NULL, NULL,                "Enforce 8bit in Patch Mode", 0, NULL};

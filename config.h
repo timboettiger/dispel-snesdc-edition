@@ -19,7 +19,8 @@ enum Parameter {
     SPLIT_ROUTINES = 10,
     HEXDUMP_WIDTH = 11,
     OUTPUT_FILE = 15,
-    AR_PATCH_MODE = 16
+    AR_PATCH_MODE = 16,
+    AR_AUTO_8BIT = 17,
 };
 
 typedef struct {
@@ -60,5 +61,6 @@ extern FlagParam force_shadow_region;
 extern FlagParam rewrite_origin_addresses;
 extern FlagParam output_channel;
 extern FlagParam ar_patch_mode;
+extern FlagParam ar_auto_8bit;
 
 #endif // CONFIG_H

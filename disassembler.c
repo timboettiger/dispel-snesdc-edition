@@ -57,12 +57,16 @@ int process_file(void)
     if (len <= 392) {
         if (flagged(VERBOSE) && !flagged(SILENT)) {
             printf("File size <= 392 bytes. Activating 'Action Replay Patch Mode'.\n");
-            printf("Resetting CPU Flags M and X to initiate 8-bit mode.\n");
         }
-
         flag(AR_PATCH_MODE);
-        flag(A8BIT);
-        flag(XY8BIT);
+
+        if(flagged(AR_AUTO_8BIT)) {
+            flag(A8BIT);
+            flag(XY8BIT);
+            if (flagged(VERBOSE) && !flagged(SILENT)) {
+                printf("Ensure CPU M and X flags are in 8-bit mode.\n");
+            }
+        }
     }
     else if (len < 0x8000 || (flagged(SKIP_HEADER) && len < 0x8200)) {
         if (!flagged(SILENT))
