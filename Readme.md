@@ -8,7 +8,7 @@
 
 DisPel is a 65816 disassembler originally developed by James Churchill. While it is not as fully featured as tools like Tracer (e.g., it is not suitable for NES ROMs), it serves many specific purposes.
 
-The `DEADC0DE` Edition includes special modifications to disassemble specific Pro Action Replay `Deadc0de` cheat codes. These codes are significantly shorter than ROM files, lack headers, and use a unique structure.
+The `DEADC0DE` Edition includes special modifications to disassemble specific [Pro Action Replay MK3 Deadc0de](https://github.com/timboettiger/action-replay-mk-iii) cheat codes. These codes are significantly shorter than ROM files, lack headers, and use a unique structure.
 
 The highlight of the Edition is a new feature called *Annotions*. It helps analyzing the assembler code by providing detailed opcode annotations as well as a analysis of operands.
 
