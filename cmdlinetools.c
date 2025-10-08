@@ -59,7 +59,7 @@ void set_copyright(const char *copyright) {
     program_copyright = copyright;
 }
 
-int validate_value(int num_options, ParamOption *valid_values, const char *value) {
+int validate_value(int num_options, const ParamOption *valid_values, const char *value) {
     if (!valid_values || num_options <= 0 || !value) {
         return 0;
     }

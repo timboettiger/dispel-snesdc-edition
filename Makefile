@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -O2 -Wno-strict-prototypes -g
 LDFLAGS=
-SOURCES=main.c 65816.c describe.c helper.c cmdlinetools.c romtools.c patchtools.c disassembler.c
+SOURCES=main.c 65816.c config.c describe.c helper.c cmdlinetools.c romtools.c patchtools.c disassembler.c
 OBJECTS=$(SOURCES:.c=.o)
 CAN_INSTALL = no
 ifeq ($(OS),Windows_NT)
@@ -26,4 +26,4 @@ install:
 uninstall:
 	rm -rf /usr/bin/$(EXECUTABLE)
 clean:
-	rm *.o ${EXECUTABLE}
+	-rm *.o ${EXECUTABLE}

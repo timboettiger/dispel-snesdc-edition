@@ -9,6 +9,7 @@
 #include <memory.h>
 #include <stdlib.h>
 
+#include "config.h"
 #include "dispel.h"
 
 unsigned long openFiles(const char *infile, const char *outfile, FILE **fin, FILE **fout) {
@@ -48,15 +49,20 @@ int process_file(void)
     unsigned long pos = 0, origin = 0x1000000, start = 0, end = 0;
     unsigned char hirom = 2, shadow = 2, tsrc = 0;
     unsigned int dwidth = 0, bank = 0x100;
+    unsigned char cpuflag = 0;
     FILE *fin, *fout;
 
     unsigned long len = openFiles(option(INPUT_FILE), option(OUTPUT_FILE), &fin, &fout);
 
     if (len <= 392) {
-        if (flagged(VERBOSE) && !flagged(SILENT))
+        if (flagged(VERBOSE) && !flagged(SILENT)) {
             printf("File size <= 392 bytes. Activating 'Action Replay Patch Mode'.\n");
+            printf("Resetting CPU Flags M and X to initiate 8-bit mode.\n");
+        }
 
         flag(AR_PATCH_MODE);
+        flag(A8BIT);
+        flag(XY8BIT);
     }
     else if (len < 0x8000 || (flagged(SKIP_HEADER) && len < 0x8200)) {
         if (!flagged(SILENT))
@@ -66,19 +72,21 @@ int process_file(void)
     unsigned char *data = allocateMemory(len);
     load_data(&fin, len, &data);
 
+    if(flagged(A8BIT)) cpuflag |= 0x20;
+    if(flagged(XY8BIT)) cpuflag |= 0x10;
+
     autoDetectHiLoROM(&data, &hirom);
     calculateAddressOptions(&data, &start, &end, &pos, origin, &hirom, &shadow, &bank, len);
 
     dwidth = strtol(option(HEXDUMP_WIDTH), NULL, 10);
-    disassemble(&fout, &data, len, start, end, pos, hirom, shadow, dwidth, tsrc);
+    disassemble(&fout, &cpuflag, &data, len, start, end, pos, hirom, shadow, dwidth, tsrc);
     return 0; //close_files(&fout, &data);
 }
 
-void disassemble(FILE **fout, unsigned char **data, unsigned long len, unsigned long start, unsigned long end, unsigned long pos, unsigned char hirom, unsigned char shadow, unsigned int dwidth, unsigned char tsrc) {
+void disassemble(FILE **fout, unsigned char *flag, unsigned char **data, unsigned long len, unsigned long start, unsigned long end, unsigned long pos, unsigned char hirom, unsigned char shadow, unsigned int dwidth, unsigned char tsrc) {
     unsigned char dmem[4];
     unsigned long rpos = start;
     char inst[521];
-    unsigned char flag = 0;
 
     int output_hexdump = (strcmp(option(FORMAT), "hexdump") == 0);
     while (rpos < len && rpos <= end) {
@@ -95,7 +103,7 @@ void disassemble(FILE **fout, unsigned char **data, unsigned long len, unsigned 
         if (output_hexdump) {
             offset = hexdump(data, pos, rpos, len, inst, dwidth);
         } else {
-            offset = disasm(dmem, pos, &flag, inst, tsrc);
+            offset = disasm(dmem, pos, flag, inst, tsrc);
         }
 
         // Check for file/block overruns

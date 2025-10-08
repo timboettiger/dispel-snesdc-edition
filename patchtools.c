@@ -1,3 +1,10 @@
+/* disassemler.c
+ * disassembler main loop
+ * Created 230900 by James Churchill
+ * Updated 190924 by Tim Böttiger
+ * Last Modified 081025
+ */
+
 #include <stdio.h>
 #include "dispel.h"
 
@@ -24,8 +31,8 @@ int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, un
 
         patch_address_start = address;
         patch_address_end = address + actual_bytes;
-        printf(">%lu ", patch_address_start);
-        printf("%lu< ", patch_address_end);
+        //printf(">%lu ", patch_address_start);
+        //printf("%lu< ", patch_address_end);
 
         // Output patch information if not in silent mode
         if (!flagged(SILENT)) {
