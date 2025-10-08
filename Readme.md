@@ -64,19 +64,19 @@ More details about this can be found in the associated [GitHub project](https://
 Annotations are appending detailed annotations as well as a analysis of operands each line after the asm code.
 
 ```assembler
-; Action Replay DEADC0DE patches 24 bytes from 0x02FC7A:
-02/FC7A:    08        php                ; Push processor status onto stack.
-02/FC7B:    E220      sep #$20           ; Set processor flags to 00100000 (binary representation of '32').
-02/FC7D:    A928      lda #$28           ; Load accumulator with value from constant '40'.
-02/FC7F:    8D9603    sta $0396          ; Store accumulator at SPC700 RAM (Work RAM) (at 0x0396).
-02/FC82:    A905      lda #$05           ; Load accumulator with value from constant '5'.
-02/FC84:    8DAD15    sta $15AD          ; Store accumulator at SPC700 RAM (Mirror) (at 0x15AD).
-02/FC87:    28        plp                ; Pull processor status from stack.
-02/FC88:    6468      stz $68            ; Store zero at 0x68.
-02/FC8A:    6469      stz $69            ; Store zero at 0x69.
-02/FC8C:    5C7EFC02  jmp $02FC7E        ; Jump to Hardware Registers and I/O Ports (at 0x02FC7E).
-02/FC90:    00        brk                ; Force break.
-02/FC91:    00        brk                ; Force break.
+; Action Replay DEADC0DE patches 28 bytes from 0xC0025C:
+C0/025C:	ADA800		lda $00A8		  ; Load accumulator with value from 0x00A8.
+C0/025F:	C90020		cmp #$2000		; Compare accumulator with constant '8192'.
+C0/0262:	D00A		  bne $026E		  ; Branch to 0x026E if not equal.
+C0/0264:	E230		  sep #$30	  	; Set processor status bits present in 00110000 (binary representation of '48').
+C0/0266:	A9FF		  lda #$FF		  ; Load accumulator with value from constant '255'.
+C0/0268:	8F71077E	sta $7E0771		; Store accumulator at Work RAM (WRAM) (at 0x7E0771).
+C0/026C:	C230		  rep #$30		  ; Clear processor status bits present in 00110000 (binary representation of '48').
+C0/026E:	AD1A42		lda $421A		  ; Load accumulator with value from JOY2L - Joypad 2 Data (Low).
+C0/0271:	AA		    tax			      ; Transfer accumulator to X register.
+C0/0272:	5C6002C0	jmp $C00260		; Jump to 0xC00260 (patch internal by -18 bytes).
+C0/0276:	00		    brk 			    ; Force break.
+C0/0277:	00		    brk 			    ; Force break.
 ```
 
 **Features:**
@@ -123,37 +123,41 @@ The `-g` option allows users to specify a custom origin address for disassembly.
 DisPel 1.1.0
 DEADC0DE Edition
 Copyright (c) 2001 James Churchill
-Copyright (c) 2024 Tim Böttiger
+Copyright (c) 2024-2025 Tim Böttiger
 
 Usage: dispel [options] <inputfile>
 Parameters:
-    -n              Skip $200 byte SMC header (optional)
-    -v              Enable verbose mode (optional)
-    -s              Enable silent mode (optional)
-    -f <format>     Output formatting (optional, default: 'standard')
-                    Options:
-                      - standard   address, hexdump, opcode with operand
-                      - hexdump    hexdump only, specify width using -w
-                      - assembler  opcode with operand
-                      - annotated  address, hexdump, opcode with operand, annotation
-    -h              Force HiROM memory mapping (optional)
-    -l              Force LoROM memory mapping (optional)
-    -a              Start in 8-bit accumulator mode (optional)
-    -x              Start in 8-bit X/Y mode (optional)
-    -e              Disable bank-boundary enforcement (optional)
-    -p              Split subroutines with blank lines after RTS, RTL, RTI (optional)
-    -w <width>      Set hexdump width in bytes per line (optional, default: 4)
-    -o <output>     Set output channel (default: stdout)
-                      - stdout      Output to standard output
-                      - <file>      Output to a file
+  -n		Skip $200 byte SMC header (optional).
+  -v		Enable verbose mode (optional).
+  -s		Enable silent mode (optional).
+  -f <format>	Output formatting (optional, default: 'standard').
+		Options:
+		  - standard	address, hexdump, opcode with operand
+		  - hexdump	hexdump only, specify width using -w
+		  - assembler	opcode with operand
+		  - annotated	address, hexdump, opcode with operand, annotation
+  -h		Force HiROM memory mapping (optional).
+  -l		Force LoROM memory mapping (optional).
+  -a		Start in 8-bit accumulator mode (optional).
+  -x		Start in 8-bit X/Y mode (optional).
+  -e		Disable bank-boundary enforcement (optional).
+  -p		Split subroutines by placing blank lines after RTS, RTL, RTI (optional).
+  -w <width>	Produce a hexdump with <width> bytes/line (optional, default: '4').
+  -o [...]	Set output channel (required, default: 'stdout').
+		Options:
+		  - stdout	stdout
+		  - <file>	Set output <file>
+  -0		Enforce Action Replay Patch Mode (optional).
+  -8		Enforce 8bit in Patch Mode (optional).
 
-    <inputfile>     File to disassemble (required)
+  <inputfile>	File to disassemble (required).
 ```
 
 ---
 
 ## Release History
 
+- **v1.1.1 - 08/10/2025:** Fixed various bugs, removed debug outputs.
 - **v1.1.0 - 21/11/2024:** Code refactoring, added dynamic patch mode detection, added annotation feature, enhanced Makefile.
 - **v1.0d - 15/11/2024:** Updated `-t` parameter handling, removed minimal size validation, and updated README.
 - **v1.0001 - 5/4/2011:** Source code adjustments for public release.
