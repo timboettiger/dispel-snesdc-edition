@@ -5,12 +5,12 @@ unsigned long patch_address_start = 0;
 unsigned long patch_address_end = 0;
 
 int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, unsigned long *rpos, unsigned long *pos) {
-    // Check if there's enough data for a dead code patch header
+    // Check if there's enough data for a DEADC0DE patch header
     if (*rpos + 7 >= len) {
         return 0; // Not enough data, no patch handled
     }
 
-    // Check for dead code patch marker
+    // Check for DEADC0DE patch marker
     if ((*data)[*rpos] == 0xDE && (*data)[*rpos + 1] == 0xAD &&
         (*data)[*rpos + 2] == 0xC0 && (*data)[*rpos + 3] == 0xDE) {
 
@@ -29,7 +29,7 @@ int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, un
 
         // Output patch information if not in silent mode
         if (!flagged(SILENT)) {
-            fprintf(*fout, "; Action Replay dead code patches %lu bytes from 0x%06lX:\n", length == 0 ? actual_bytes : max_bytes, address);
+            fprintf(*fout, "; Action Replay DEADC0DE patches %lu bytes from 0x%06lX:\n", length == 0 ? actual_bytes : max_bytes, address);
             if (length == 0) {
                 fprintf(*fout, "; No length defined. Dynamic mode.\n");
             }

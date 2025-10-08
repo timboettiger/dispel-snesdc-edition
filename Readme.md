@@ -2,13 +2,13 @@
 # DisPel v1.1.0 - DEADC0DE Edition
 
 - (C) 2001 by James Churchill of Naruto, <pelrun@gmail.com>
-- (C) 2024 DEADC0DE Edition by Tim Böttiger, <timboettiger@gmail.com>
+- (C) 2024-2025 `DEADC0DE` Edition by Tim Böttiger, <timboettiger@gmail.com>
 
 ## 65816 Action Replay Dialect Disassembler
 
 DisPel is a 65816 disassembler originally developed by James Churchill. While it is not as fully featured as tools like Tracer (e.g., it is not suitable for NES ROMs), it serves many specific purposes.
 
-The DEADC0DE Edition includes special modifications to disassemble specific "dead codes". These codes are significantly shorter than ROM files, lack headers, and contain unique quirks in their opcode dialect.
+The `DEADC0DE` Edition includes special modifications to disassemble specific Pro Action Replay `Deadc0de` cheat codes. These codes are significantly shorter than ROM files, lack headers, and use a unique structure.
 
 The highlight of the Edition is a new feature called *Annotions*. It helps analyzing the assembler code by providing detailed opcode annotations as well as a analysis of operands.
 
@@ -27,7 +27,7 @@ The highlight of the Edition is a new feature called *Annotions*. It helps analy
 
 **DEADC0DE Support:**
 
-- Support for macOS/Linux binaries as targets (Makefile targets)
+- Support for macOS/Linux binaries as targets (Makefile)
 - More flexible validation of the minimum binary data length
 - Assembler annotation generator
 - Various output formatting themes (hexcode, assembler, annotated)
@@ -37,10 +37,10 @@ The highlight of the Edition is a new feature called *Annotions*. It helps analy
 
 ### DEADC0DE Edition
 
-When a dead code is being detected, the following message will be generated above the assembler instructions. It contains the length (bytes) of the patch, as well as the memory target where the patch will be injected or inserted.
+When a `DEADC0DE` is being detected, the following message will be generated above the assembler instructions. It contains the length (bytes) of the patch, as well as the memory target where the patch will be injected or inserted.
 
 ```assembler
-; Action Replay dead code patches 36 bytes from 0xC0025C:
+; Action Replay deadc0de patches 36 bytes from 0xC0025C:
 ```
 
 In case the patch length is not defined within the patch header, it will be calculated. This is shown as follows:
@@ -55,7 +55,7 @@ In some cases the (specified!) patch length does not match the real length. If s
 ; Warning: Patch length (28 bytes) mismatch. Allowed length: 36 bytes.
 ```
 
-Dead codes were historically used in Action Replay MK II and MK III cheat devices and remained undocumented for years.
+`DEADC0DE` were historically used in Action Replay MK II and MK III cheat devices and remained undocumented for years.
 
 More details about this can be found in the associated [GitHub project](https://github.com/timboettiger/action-replay-mk-iii/blob/master/deadc0de-story.md).
 
@@ -64,7 +64,7 @@ More details about this can be found in the associated [GitHub project](https://
 Annotations are appending detailed annotations as well as a analysis of operands each line after the asm code.
 
 ```assembler
-; Action Replay dead code patches 24 bytes from 0x02FC7A:
+; Action Replay DEADC0DE patches 24 bytes from 0x02FC7A:
 02/FC7A:    08        php                ; Push processor status onto stack.
 02/FC7B:    E220      sep #$20           ; Set processor flags to 00100000 (binary representation of '32').
 02/FC7D:    A928      lda #$28           ; Load accumulator with value from constant '40'.

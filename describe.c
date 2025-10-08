@@ -5,26 +5,11 @@
 #include <stdlib.h>
 #include "dispel.h"
 
+// Gilt nur für 65C816 (SNES-CPU) – keine SPC700-RAM-Regeln enthalten.
 TranslationEntry translationTable[] = {
-    /*
-    {"^0x00F0$", "SPC700 Register - Timer 0 Target"},
-    {"^0x00F1$", "SPC700 Register - Timer 1 Target"},
-    {"^0x00F2$", "SPC700 Register - Timer 2 Target"},
-    {"^0x00F3$", "SPC700 Register - Timer Control"},
-    {"^0x00F4$", "SPC700 Register - DSP Address"},
-    {"^0x00F5$", "SPC700 Register - DSP Data"},
-    {"^0x00F6$", "SPC700 Register - CPU I/O Port 0"},
-    {"^0x00F7$", "SPC700 Register - CPU I/O Port 1"},
-    {"^0x00F8$", "SPC700 Register - CPU I/O Port 2"},
-    {"^0x00F9$", "SPC700 Register - CPU I/O Port 3"},
-    {"^0x00FA$", "SPC700 Register - APU I/O Port 0"},
-    {"^0x00FB$", "SPC700 Register - APU I/O Port 1"},
-    {"^0x00FC$", "SPC700 Register - APU I/O Port 2"},
-    {"^0x00FD$", "SPC700 Register - APU I/O Port 3"},
-    {"^0x00FE$", "SPC700 Register - Test Register"},
-    {"^0x00FF$", "SPC700 Register - Control Register"},
-    */
-
+    // ---------------------------
+    // PPU (2100–213F)
+    // ---------------------------
     {"^0x2100$", "INIDISP - Display Control"},
     {"^0x2101$", "OBSEL - Object Size and Data Area Designation"},
     {"^0x2102$", "OAMADDL - OAM Address (Low)"},
@@ -36,8 +21,8 @@ TranslationEntry translationTable[] = {
     {"^0x2108$", "BG2SC - BG2 Screen Base Address"},
     {"^0x2109$", "BG3SC - BG3 Screen Base Address"},
     {"^0x210A$", "BG4SC - BG4 Screen Base Address"},
-    {"^0x210B$", "BG12NBA - BG1/BG2 Character Data Area Designation"},
-    {"^0x210C$", "BG34NBA - BG3/BG4 Character Data Area Designation"},
+    {"^0x210B$", "BG12NBA - BG1/BG2 Character Data Area"},
+    {"^0x210C$", "BG34NBA - BG3/BG4 Character Data Area"},
     {"^0x210D$", "BG1HOFS - BG1 Horizontal Scroll"},
     {"^0x210E$", "BG1VOFS - BG1 Vertical Scroll"},
     {"^0x210F$", "BG2HOFS - BG2 Horizontal Scroll"},
@@ -89,7 +74,12 @@ TranslationEntry translationTable[] = {
     {"^0x213D$", "OPVCT - Vertical Scanline Position"},
     {"^0x213E$", "STAT77 - PPU Status Flag"},
     {"^0x213F$", "STAT78 - PPU Status Flag"},
+    // Sammelregel, falls Einzeladressen oben nicht gepflegt werden:
+    {"^0x21[0-3][0-9A-Fa-f]{2}$", "PPU Register (at @s)"},
 
+    // ---------------------------
+    // APU I/O (CPU-seitig) & WRAM-Ports
+    // ---------------------------
     {"^0x2140$", "APUI0 - APU I/O Port 0"},
     {"^0x2141$", "APUI1 - APU I/O Port 1"},
     {"^0x2142$", "APUI2 - APU I/O Port 2"},
@@ -105,9 +95,15 @@ TranslationEntry translationTable[] = {
     {"^0x218A$", "S-RTC Control Register"},
     {"^0x218B$", "S-RTC Status Register"},
 
+    // ---------------------------
+    // Joypad Latches (CPU)
+    // ---------------------------
     {"^0x4016$", "JOYSER0 - Joypad Port 1"},
     {"^0x4017$", "JOYSER1 - Joypad Port 2"},
 
+    // ---------------------------
+    // CPU-Internal & Joypad Readback (4200–421F)
+    // ---------------------------
     {"^0x4200$", "NMITIMEN - Interrupt Enable Flags"},
     {"^0x4201$", "WRIO - Programmable I/O Port"},
     {"^0x4202$", "WRMPYA - Multiplicand"},
@@ -122,6 +118,7 @@ TranslationEntry translationTable[] = {
     {"^0x420B$", "MDMAEN - General DMA Enable"},
     {"^0x420C$", "HDMAEN - H-Blank DMA Enable"},
     {"^0x420D$", "MEMSEL - ROM Speed"},
+
     {"^0x4210$", "RDNMI - NMI Flag and 5A22 Version"},
     {"^0x4211$", "TIMEUP - IRQ Flag"},
     {"^0x4212$", "HVBJOY - PPU Status Register"},
@@ -138,7 +135,12 @@ TranslationEntry translationTable[] = {
     {"^0x421D$", "JOY3H - Joypad 3 Data (High)"},
     {"^0x421E$", "JOY4L - Joypad 4 Data (Low)"},
     {"^0x421F$", "JOY4H - Joypad 4 Data (High)"},
+    // Sammelregel:
+    {"^0x42[0-1][0-9A-Fa-f]{2}$", "CPU/PPU I/O Register (at @s)"},
 
+    // ---------------------------
+    // Expansion Port
+    // ---------------------------
     {"^0x4800$", "EXPANSION - Expansion Port Register 0"},
     {"^0x4801$", "EXPANSION - Expansion Port Register 1"},
     {"^0x4802$", "EXPANSION - Expansion Port Register 2"},
@@ -148,56 +150,30 @@ TranslationEntry translationTable[] = {
     {"^0x4806$", "EXPANSION - Expansion Port Register 6"},
     {"^0x4807$", "EXPANSION - Expansion Port Register 7"},
 
-    {"^0x004211$", "RDIO - Programmable I/O Port (Read)"},
-    {"^0x00EAEA$", "Address in LoROM typically used for infinite loops"},
-    {"^0x80EAEA$", "Address in HiROM or mirrored LoROM, potentially infinite loop"},
+    // ---------------------------
+    // DMA-Register (4300–437F)
+    // ---------------------------
+    {"^0x43[0-7][0-9A-Fa-f]{2}$", "DMA Register (Channel 0–7, at @s)"},
 
-    {"^0xFFFC$", "NMI Vector (Emulation Mode)"},
-    {"^0xFFFE$", "Reset Vector (Emulation Mode)"},
-    {"^0xFFFA$", "IRQ/BRK Vector (Emulation Mode)"},
-    {"^0xFFF[8-9A-Fa-f]$", "Interrupt Vector (Emulation Mode, at @s)"},
-    {"^0xFFE[0-7]$", "Interrupt Vector (Native Mode, at @s)"},
-    {"^0xFF[CF][0-9A-Fa-f]{2}$", "Interrupt Vectors (Native Mode, at @s)"},
-
-    {"^0x00[0-9A-Fa-f]{2}$", "SPC700 RAM (Zero Page and Stack) (at @s)"},
-    {"^0x01[0-9A-Fa-f]{2}$", "SPC700 RAM (Direct Page) (at @s)"},
-    {"^0x0[2-9A-Fa-f][0-9A-Fa-f]{2}$", "SPC700 RAM (Work RAM) (at @s)"},
-    {"^0x[0-6][0-9A-Fa-f]{3}$", "SPC700 RAM (Mirror) (at @s)"},
-    {"^0x7F[0-9A-Fa-f]{3}$", "SPC700 ROM (at @s)"},
-
-    {"^0x22[0-3][0-9A-Fa-f]{2}$", "SA-1 Register (at @s)"},
-    {"^0x21[0-3][0-9A-Fa-f]$", "PPU Register (at @s)"},
-
+    // ---------------------------
+    // WRAM (7E/7F) & Low-WRAM-Mirror
+    // ---------------------------
     {"^0x7E[0-9A-Fa-f]{4}$", "Work RAM (WRAM) (at @s)"},
     {"^0x7F[0-9A-Fa-f]{4}$", "Mirror of WRAM (at @s)"},
+    // 16-bit Adressen (ohne Bank), wie sie häufig im Disasm gezeigt werden:
+    {"^0x0[0-1][0-9A-Fa-f]{3}$", "Low WRAM mirror ($7E:0000–$7E:1FFF) (at @s)"},
 
-    {"^0x00[0-1F][0-9A-Fa-f]{2}$", "System Area (at @s)"},
-    {"^0x80[0-1F][0-9A-Fa-f]{2}$", "Mirror of System Area (at @s)"},
+    // ---------------------------
+    // Reset/Interrupt-Vektoren (Bank $00)
+    // (SNES nutzt diese Adressen unabhängig vom CPU-Emu/Native-Detail)
+    // ---------------------------
+    {"^0x00FFFA$", "NMI Vector"},
+    {"^0x00FFFC$", "Reset Vector"},
+    {"^0x00FFFE$", "IRQ/BRK Vector"},
 
-    {"^0x00[0-7F][0-9A-Fa-f]{4}$", "LoROM Mapping (at @s)"},
-    {"^0x80[0-7F][0-9A-Fa-f]{4}$", "Mirror of LoROM Mapping (at @s)"},
-
-    {"^0x40[0-7F][0-9A-Fa-f]{4}$", "HiROM Mapping (at @s)"},
-    {"^0xC0[0-7F][0-9A-Fa-f]{4}$", "Mirror of HiROM Mapping (at @s)"},
-
-    {"^0x[0-3][0-9A-Fa-f]{5}$", "Hardware Registers and I/O Ports (at @s)"},
-    {"^0x[8B][0-9A-Fa-f]{5}$", "Mirror of Hardware Registers and I/O Ports (at @s)"},
-
-    {"^0x[4-7][0-9A-Fa-f]{5}$", "Open Bus Area (at @s)"},
-    {"^0xFE[0-9A-Fa-f]{4}$", "High ROM Area (at @s)"},
-    {"^0x[2-3][0-9A-Fa-f]8000$", "Open Bus or ROM Mirror (at @s)"},
-    {"^0x[6-7][0-9A-Fa-f]{5}$", "Unmapped or Reserved Area (at @s)"},
-    {"^0x80[0-9A-Fa-f]{5}$", "Open Bus or ROM Mirror (at @s)"},
-    {"^0x40[0-9A-Fa-f]{5}$", "Extended ROM (HiROM or LoROM, at @s)"},
-
-    {"^0x[0-3][0-9A-Fa-f]0000$", "Extended RAM or Hardware (at @s)"},
-    {"^0x[8B][0-9A-Fa-f]0000$", "Mirror of Extended RAM or Hardware (at @s)"},
-
-    {"^0x43[0-7][0-9A-Fa-f]$", "DMA Register for Channel %d (at @s)"},
-
-    {"^0x00F[0-9A-Fa-f]{2}$", "SPC700 Register (at @s)"},
-    {"^0xF0[0-9A-Fa-f]{2}$", "SPC700 Register (at @s)"},
-
+    // ---------------------------
+    // Instruktionsbeschreibungen (65C816)
+    // ---------------------------
     {"^adc$", "Add with carry to \\@s"},
     {"^and$", "Logical AND with \\@s"},
     {"^asl$", "Arithmetic shift left on \\@s"},
@@ -256,7 +232,7 @@ TranslationEntry translationTable[] = {
     {"^plp$", "Pull processor status from stack"},
     {"^plx$", "Pull X register from stack"},
     {"^ply$", "Pull Y register from stack"},
-    {"^rep$", "Reset processor flags to \\@b"},
+    {"^rep$", "Clear processor status bits present in \\@b"},
     {"^rol$", "Rotate left on \\@s"},
     {"^ror$", "Rotate right on \\@s"},
     {"^rti$", "Return from interrupt"},
@@ -266,7 +242,7 @@ TranslationEntry translationTable[] = {
     {"^sec$", "Set carry flag"},
     {"^sed$", "Set decimal mode flag"},
     {"^sei$", "Set interrupt disable flag"},
-    {"^sep$", "Set processor flags to \\@b"},
+    {"^sep$", "Set processor status bits present in \\@b"},
     {"^sta$", "Store accumulator at \\@s"},
     {"^stp$", "Stop processor"},
     {"^stx$", "Store X register at \\@s"},
@@ -426,9 +402,9 @@ const char* describe(unsigned long pos, const char* input, const char *translati
     if (mainInput[0] == '$') {
         char* hex_memory = &mainInput[1];
         unsigned long dec_memory = strtoul(hex_memory, NULL, 16);
-        printf("%lu ", dec_memory);
-        printf("%lu ", patch_address_start);
-        printf("%lu ", patch_address_end);
+        //printf("%lu ", dec_memory);
+        //printf("%lu ", patch_address_start);
+        //printf("%lu ", patch_address_end);
         int internal = dec_memory >= patch_address_start && dec_memory <= patch_address_end;
         int jump_size = dec_memory - pos;
 
