@@ -85,6 +85,7 @@ Annotations are appending detailed annotations as well as a analysis of operands
 - Conversion of hexadecimal numbers to decimal representation
 - Conversion of flags to binary and decimal representation
 - Mapping of well known registers, interrupts and memory sections
+- Adoption of the bank and memory address of the patch target as an offset for the assembler instructions
 
 ### True SNES Addressing
 

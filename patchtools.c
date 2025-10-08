@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "dispel.h"
 
+unsigned long patch_address_start = 0;
+unsigned long patch_address_end = 0;
+
 int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, unsigned long *rpos, unsigned long *pos) {
     // Check if there's enough data for a dead code patch header
     if (*rpos + 7 >= len) {
@@ -18,6 +21,11 @@ int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, un
         unsigned char length = (*data)[*rpos + 7];
         unsigned long actual_bytes = len - *rpos - 8;
         unsigned long max_bytes = length ? (length * 4) : 0;
+
+        patch_address_start = address;
+        patch_address_end = address + actual_bytes;
+        printf(">%lu ", patch_address_start);
+        printf("%lu< ", patch_address_end);
 
         // Output patch information if not in silent mode
         if (!flagged(SILENT)) {

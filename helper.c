@@ -89,101 +89,6 @@ char* table(int column_count, ...) {
     return result;
 }
 
-void convertToHexFormat(const char* address, char* convertedAddress) {
-    if (address[0] == '$') {
-        sprintf(convertedAddress, "0x%s", address + 1);
-    } else {
-        strcpy(convertedAddress, address);
-    }
-}
-
-void convertToDecFormat(const char* number, char* convertedNumber) {
-    if (number[0] == '#' && number[1] == '$') {
-        int decimalValue = (int)strtol(number + 2, NULL, 16);
-        sprintf(convertedNumber, "constant '%d'", decimalValue);
-    }
-    else {
-        strcpy(convertedNumber, number);
-    }
-}
-
-void convertToFlagFormat(const char* number, char* convertedNumber) {
-    if (number[0] == '#' && number[1] == '$') {
-        int decimalValue = (int)strtol(number + 2, NULL, 16);
-        char binaryString[9] = {0};
-        for (int i = 7; i >= 0; i--) {
-            binaryString[7 - i] = (decimalValue & (1 << i)) ? '1' : '0';
-        }
-        sprintf(convertedNumber, "%s (binary representation of '%d')", binaryString, decimalValue);
-    } else if (number[0] == '#') {
-        int decimalValue = (int)strtol(number + 1, NULL, 10);
-        char binaryString[9] = {0};
-        for (int i = 7; i >= 0; i--) {
-            binaryString[7 - i] = (decimalValue & (1 << i)) ? '1' : '0';
-        }
-        sprintf(convertedNumber, "%s (binary representation of '%d')", binaryString, decimalValue);
-    } else {
-        strcpy(convertedNumber, number);
-    }
-}
-
-void process_template(const char* descriptionTemplate, const char* replacement, char* output, size_t output_size) {
-    size_t i = 0, j = 0;
-    bool escaping = false;
-    bool replaced = false;
-    char temp[256] = {0};
-
-    while (descriptionTemplate[i] != '\0' && j < output_size - 1) {
-        if (descriptionTemplate[i] == '\\' && !escaping) {
-            escaping = true;
-            i++;
-            continue;
-        } else if (descriptionTemplate[i] == '@' && descriptionTemplate[i + 1] == 's' && !escaping && !replaced) {
-            static char replacementValue[200];
-            convertToDecFormat(replacement, replacementValue);
-            strncat(temp, replacementValue, sizeof(temp) - strlen(temp) - 1);
-            j = strlen(temp);
-            i += 2;
-            replaced = true;
-            continue;
-        } else if (descriptionTemplate[i] == '@' && descriptionTemplate[i + 1] == 'b' && !escaping && !replaced) {
-            static char replacementValue[200];
-            convertToFlagFormat(replacement, replacementValue);
-            strncat(temp, replacementValue, sizeof(temp) - strlen(temp) - 1);
-            j = strlen(temp);
-            i += 2;
-            replaced = true;
-            continue;
-        } else {
-            temp[j++] = descriptionTemplate[i++];
-        }
-        escaping = false;
-    }
-    temp[j] = '\0';
-    strncpy(output, temp, output_size);
-    output[output_size - 1] = '\0';
-}
-
-void extract_placeholder(const char *descriptionTemplate, char *placeholder) {
-    int length = strlen(descriptionTemplate);
-    int i = 0;
-    placeholder[0] = '@';
-    placeholder[1] = 's';
-    placeholder[2] = '\0';
-
-    while (i < length - 1) {
-        if (descriptionTemplate[i] == '@' &&
-            ((descriptionTemplate[i + 1] >= 'A' && descriptionTemplate[i + 1] <= 'Z') ||
-             (descriptionTemplate[i + 1] >= 'a' && descriptionTemplate[i + 1] <= 'z'))) {
-            placeholder[0] = descriptionTemplate[i];
-            placeholder[1] = descriptionTemplate[i + 1];
-            placeholder[2] = '\0';
-            return;
-        }
-        i++;
-    }
-}
-
 int hexdump(unsigned char **data,unsigned long pos,unsigned long rpos, unsigned long len,char *inst, unsigned char dwidth)
 {
 	int i;
@@ -199,12 +104,7 @@ int AllASCII(unsigned char *b, int size)
 {
 	int i;
 	for (i = 0; i < size; i++)
-	{
-		if (b[i] < 32 || b[i] > 126)
-		{
-			return 0;
-		}
-	}
+	   if (b[i] < 32 || b[i] > 126) return 0;
 	return 1;
 }
 

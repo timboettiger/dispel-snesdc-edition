@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -O2 -Wno-strict-prototypes
+CFLAGS=-Wall -O2 -Wno-strict-prototypes -g
 LDFLAGS=
 SOURCES=main.c 65816.c describe.c helper.c cmdlinetools.c romtools.c patchtools.c disassembler.c
 OBJECTS=$(SOURCES:.c=.o)

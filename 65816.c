@@ -991,14 +991,8 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	};
 
 	// Generate hex output
-	for (i=0; i<offset; i++)
-	{
-		sprintf(hbuf+i*2,"%02X",mem[i]);
-	}
-	for (i=offset*2; i<8; i++)
-	{
-		hbuf[i]=0x20;
-	}
+	for (i=0; i<offset; i++) sprintf(hbuf+i*2,"%02X",mem[i]);
+	for (i=offset*2; i<8; i++) hbuf[i]=0x20;
 	hbuf[8]=0;
 
 	char opcode[100], operand[100];
@@ -1007,12 +1001,12 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 
 	extract_placeholder(template, placeholder);
 	strncpy(opcode, ibuf, sizeof(ibuf) - 1);
-    strncpy(opcode, describe(opcode, placeholder), sizeof(opcode) - 1);
+    strncpy(opcode, describe(pos, opcode, placeholder), sizeof(opcode) - 1);
     opcode[sizeof(opcode) - 1] = '\0';
 
     extract_placeholder(opcode, placeholder);
     strncpy(operand, pbuf, sizeof(pbuf) - 1);
-    strncpy(operand, describe(operand, placeholder), sizeof(operand) - 1);
+    strncpy(operand, describe(pos, operand, placeholder), sizeof(operand) - 1);
     operand[sizeof(operand) - 1] = '\0';
 
     static char explanation[100];
