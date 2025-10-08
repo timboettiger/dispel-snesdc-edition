@@ -1,12 +1,7 @@
 /* 65816.c
  * 65816/6502 module for DisPel
- * ---  DEADC0DE Edition  ---
- *
- * James Churchill
- * Created 230900
- * Detailed options for address and hexdump
- * for DEADC0DE Edition by Tim Böttiger
- * Last Modified 151124
+ * Created 230900 by James Churchill
+ * Last Modified 240900
  */
 
 #include <stdio.h>
@@ -33,7 +28,6 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	int offset,sval,i;
 
 	// Parse out instruction mnemonic
-
 	switch (mem[0])
 	{
 		// ADC
@@ -930,12 +924,13 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 		break;
 		// WDM mode
 	case 0x42:
-		// Interrupt
+		// Stack/Interrupt
 	case 0x00:
-                pbuf[0] = 0;
-                offset = 1;
-                break;
-		// Stack
+	    if (flagged(AR_PATCH_MODE))
+		{
+			offset = 1;
+			break;
+		}
 	case 0x02:
 		sprintf(pbuf,"$%02X",mem[1]);
 		offset = 2;
@@ -995,27 +990,43 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	};
 
 	// Generate hex output
-	for (i=0; i<offset; i++)
-	{
-		sprintf(hbuf+i*2,"%02X",mem[i]);
-	}
-	for (i=offset*2; i<8; i++)
-	{
-		hbuf[i]=0x20;
-	}
+	for (i=0; i<offset; i++) sprintf(hbuf+i*2,"%02X",mem[i]);
+	for (i=offset*2; i<8; i++) hbuf[i]=0x20;
 	hbuf[8]=0;
 
-	sprintf(inst, "");
-    // Append address to output if not disabled by -A
-	if(!(tsrc&0x10))
-		sprintf(inst + strlen(inst), "%02lX/%04lX:\t", (pos >> 16) & 0xFF, pos&0xFFFF);
+	char opcode[100], operand[100];
+	const char *template = "; @s.";
+	char placeholder[3];
 
-    // Append hexdump to output if not disabled by -H
-	if(!(tsrc&0x20))
-		sprintf(inst + strlen(inst), "%s\t", hbuf);
+	extract_placeholder(template, placeholder);
+	strncpy(opcode, ibuf, sizeof(ibuf) - 1);
+    strncpy(opcode, describe(pos, opcode, placeholder), sizeof(opcode) - 1);
+    opcode[sizeof(opcode) - 1] = '\0';
 
-	// Generate whole disassembly line
-	sprintf(inst, "%s%s %s", inst, ibuf, pbuf);
+    extract_placeholder(opcode, placeholder);
+    strncpy(operand, pbuf, sizeof(pbuf) - 1);
+    strncpy(operand, describe(pos, operand, placeholder), sizeof(operand) - 1);
+    operand[sizeof(operand) - 1] = '\0';
+
+    static char explanation[100];
+    static char temp[100];
+
+    process_template(template, opcode, temp, sizeof(temp));
+    strncpy(explanation, temp, sizeof(explanation));
+    process_template(explanation, operand, temp, sizeof(temp));
+    strncpy(explanation, temp, sizeof(explanation));
+
+   	column address = {3, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos&0xFFFF)};
+    column hexcode = {3, hbuf};
+    column machinecode = {4, format("%s %s", ibuf, pbuf)};
+    column description = {0, explanation};
+
+    if (strcmp(option(FORMAT), "standard") == 0)
+        sprintf(inst, "%s", table(3, address, hexcode, machinecode));
+    else if (strcmp(option(FORMAT), "assembler") == 0)
+        sprintf(inst, "%s", table(1, machinecode));
+    else if (strcmp(option(FORMAT), "annotated") == 0)
+        sprintf(inst, "%s", table(4, address, hexcode, machinecode, description));
 
 	return offset;
 }
