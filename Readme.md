@@ -4,7 +4,7 @@
 - (C) 2001 by James Churchill of Naruto, <pelrun@gmail.com>
 - (C) 2024-2025 `DEADC0DE` Edition by Tim Böttiger, <timboettiger@gmail.com>
 
-## 65816 Action Replay Dialect Disassembler
+## 65816 (and) Action Replay Deadc0de Disassembler
 
 DisPel is a 65816 disassembler originally developed by James Churchill. While it is not as fully featured as tools like Tracer (e.g., it is not suitable for NES ROMs), it serves many specific purposes.
 
