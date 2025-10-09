@@ -1,0 +1,86 @@
+name: Build and release dispel
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # nur bei getaggten Commits wie v1.1.0
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        runner: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+
+      # Wenn dein Build wirklich nur "make" braucht, dann genügt das:
+      - name: Build
+        run: |
+          make
+
+      # Verpacke das Binary plattformspezifisch in ein Verzeichnis und lade es als Artifact hoch.
+      - name: Prepare binary
+        run: |
+          mkdir -p release
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            # unter Windows heißt Binary dispel.exe
+            # auf Windows muss die Shell-Bedingung in PowerShell/Batch ausgeführt werden,
+            # aber hier verwenden wir bash-style cross-run: in Actions unter windows wird bash verfügbar sein.
+            cp dispel.exe release/dispel-${{ github.ref_name }}-windows.exe
+          else
+            cp dispel release/dispel-${{ github.ref_name }}-${{ matrix.os }} 
+            chmod +x release/dispel-${{ github.ref_name }}-${{ matrix.os }}
+          fi
+        shell: bash
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dispel-${{ matrix.os }}
+          path: release
+
+  publish:
+    name: Create GitHub Release and attach artifacts
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+
+      # Lade alle von den Build-Jobs hochgeladenen Artefakte herunter
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: dispel-ubuntu-latest
+          path: ./artifacts/ubuntu || true
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: dispel-macos-latest
+          path: ./artifacts/macos || true
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: dispel-windows-latest
+          path: ./artifacts/windows || true
+
+      # Erstelle Release mit dem Tag-Namen als Release-Name und hänge die Artefakte an.
+      - name: Create GitHub release and upload assets
+        run: |
+          TAG=${{ github.ref_name }}
+          # erzeugt Release mit dem Tag-Namen als Release-Name; gh CLI generiert Notes automatisch
+          gh release create "$TAG" \
+            ./artifacts/ubuntu/release/*  \
+            ./artifacts/macos/release/*   \
+            ./artifacts/windows/release/* \
+            --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
