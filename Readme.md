@@ -1,5 +1,5 @@
 
-# DisPel v1.1.1 - DEADC0DE Edition
+# DisPel v1.1.3 - DEADC0DE Edition
 
 - (C) 2001 by James Churchill of Naruto, <pelrun@gmail.com>
 - (C) 2024-2025 `DEADC0DE` Edition by Tim Böttiger, <timboettiger@gmail.com>
