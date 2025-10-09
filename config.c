@@ -1,7 +1,7 @@
 
 #include "config.h"
 
-const char *version = "1.1.3";
+const char *version = "1.1.4";
 
 const ParamOption format_values[] = {
     {"standard",  "address, hexdump, opcode with operand"},

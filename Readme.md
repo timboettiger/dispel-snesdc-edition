@@ -1,5 +1,5 @@
 
-# DisPel v1.1.3 - DEADC0DE Edition
+# DisPel v1.1.4 - DEADC0DE Edition
 
 - (C) 2001 by James Churchill of Naruto, <pelrun@gmail.com>
 - (C) 2024-2025 `DEADC0DE` Edition by Tim Böttiger, <timboettiger@gmail.com>
@@ -157,6 +157,7 @@ Parameters:
 
 ## Release History
 
+- **v1.1.4 - 09/10/2025:** Fix strncpy usage and improve Makefile portability.
 - **v1.1.3 - 09/10/2025:** Improved annotation output, removed debug outputs.
 - **v1.1.2 - 09/10/2025:** Enhanced Makefile, fixed display help bug.
 - **v1.1.1 - 08/10/2025:** Fixed various bugs, removed debug outputs.

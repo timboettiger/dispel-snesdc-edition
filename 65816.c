@@ -999,12 +999,12 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	char placeholder[3];
 
 	extract_placeholder(template, placeholder);
-	strncpy(opcode, ibuf, sizeof(ibuf) - 1);
+	snprintf(opcode,  sizeof(opcode),  "%s", ibuf);
     strncpy(opcode, describe(pos, opcode, placeholder), sizeof(opcode) - 1);
     opcode[sizeof(opcode) - 1] = '\0';
 
     extract_placeholder(opcode, placeholder);
-    strncpy(operand, pbuf, sizeof(pbuf) - 1);
+    snprintf(operand, sizeof(operand), "%s", pbuf);
     strncpy(operand, describe(pos, operand, placeholder), sizeof(operand) - 1);
     operand[sizeof(operand) - 1] = '\0';
 
@@ -1021,12 +1021,15 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     column machinecode = {4, format("%s %s", ibuf, pbuf)};
     column description = {0, explanation};
 
-    if (strcmp(option(FORMAT), "standard") == 0)
+    if (strcmp(option(FORMAT), "standard") == 0) {
         sprintf(inst, "%s", table(3, address, hexcode, machinecode));
-    else if (strcmp(option(FORMAT), "assembler") == 0)
+    }
+    else if (strcmp(option(FORMAT), "assembler") == 0) {
         sprintf(inst, "%s", table(1, machinecode));
-    else if (strcmp(option(FORMAT), "annotated") == 0)
+    }
+    else if (strcmp(option(FORMAT), "annotated") == 0) {
         sprintf(inst, "%s", table(4, address, hexcode, machinecode, description));
+    }
 
 	return offset;
 }
