@@ -22,8 +22,24 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build
+      - name: Build (posix)
+        if: runner.os != 'Windows'
         run: make
+
+      - name: Setup MSYS2 (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-libgnurx
+      - name: Build (Windows via MSYS2)
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: |
+          make CC=x86_64-w64-mingw32-gcc
 
       - name: Prepare binary
         shell: bash
@@ -31,9 +47,7 @@ jobs:
           set -eu
           mkdir -p release
           TAG="${{ github.ref_name }}"
-          OS="${{ matrix.os }}"
-
-          case "$OS" in
+          case "${{ matrix.os }}" in
             windows-latest)
               cp dispel.exe "release/dispel-${TAG}-windows.exe"
               ;;
