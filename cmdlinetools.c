@@ -219,7 +219,6 @@ void process_args(int argc, char *argv[]) {
     }
     if (required_file_help_text && !required_file) {
         printf("Error: Missing required file argument.\n");
-        print_help();
         exit(1);
     }
 }

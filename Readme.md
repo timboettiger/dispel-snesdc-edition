@@ -157,6 +157,7 @@ Parameters:
 
 ## Release History
 
+- **v1.1.2 - 09/10/2025:** Enhanced Makefile, fixed display help bug.
 - **v1.1.1 - 08/10/2025:** Fixed various bugs, removed debug outputs.
 - **v1.1.0 - 21/11/2024:** Code refactoring, added dynamic patch mode detection, added annotation feature, enhanced Makefile.
 - **v1.0d - 15/11/2024:** Updated `-t` parameter handling, removed minimal size validation, and updated README.
