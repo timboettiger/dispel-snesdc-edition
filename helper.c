@@ -11,6 +11,11 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/stat.h>
+
+#ifdef _WIN32
+#include <io.h>
+#endif
 
 #include "dispel.h"
 
@@ -116,14 +121,23 @@ int AllASCII(unsigned char *b, int size)
 }
 
 unsigned long getFileLength(FILE **fin) {
-    #if defined(__APPLE__) || defined(__linux__)
-        fseek(*fin, 0L, SEEK_END);
-        unsigned long len = ftell(*fin);
-        fseek(*fin, 0L, SEEK_SET);
-    #else
-        unsigned long len = filelength(fileno(*fin));
-    #endif
-    return len;
+    if (!fin || !*fin) return 0;
+
+#ifdef _WIN32
+    int fd = _fileno(*fin);
+    if (fd == -1) return 0;
+    long len = _filelength(fd);
+    if (len < 0) return 0;
+    return (unsigned long)len;
+#else
+    long pos = ftell(*fin);
+    if (pos == -1L) pos = 0;
+    if (fseek(*fin, 0L, SEEK_END) != 0) return 0;
+    long len = ftell(*fin);
+    (void)fseek(*fin, pos, SEEK_SET);
+    if (len < 0) return 0;
+    return (unsigned long)len;
+#endif
 }
 
 unsigned char *allocateMemory(unsigned long len) {

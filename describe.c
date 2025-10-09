@@ -375,12 +375,12 @@ void extract_placeholder(const char *descriptionTemplate, char *placeholder) {
 const char* describe(unsigned long pos, const char* input, const char *translationTemplate) {
     regex_t regex;
     int result;
-    static char lookupValue[100];
-    static char explanation[200]; // Increased size to accommodate additional text
-    static char tempExplanation[200];
-    char mainInput[100];
-    char offsetPart[100];
-    char tempInput[100];
+    static char lookupValue[512];
+    static char explanation[512];
+    static char tempExplanation[512];
+    char mainInput[256];
+    char offsetPart[256];
+    char tempInput[256];
 
     // Copy input to tempInput for manipulation
     strncpy(tempInput, input, sizeof(tempInput));
@@ -412,7 +412,7 @@ const char* describe(unsigned long pos, const char* input, const char *translati
         int internal = dec_memory >= patch_address_start && dec_memory <= patch_address_end;
         int jump_size = dec_memory - pos;
 
-        static char internal_jump_details[100];
+        static char internal_jump_details[256];
         if (internal)
             snprintf(internal_jump_details, sizeof(internal_jump_details), " (patch internal by %i bytes)", jump_size);
         snprintf(lookupValue, sizeof(lookupValue), "0x%s%s", hex_memory, internal_jump_details);
@@ -434,7 +434,7 @@ const char* describe(unsigned long pos, const char* input, const char *translati
             const char* template = translationTable[i].description;
             // Now, if offsetPart is not empty, append explanation
             if (offsetPart[0] != '\0') {
-                static char extendedLookup[200];
+                static char extendedLookup[256];
                 char* offsetTrimmed = offsetPart;
                 while (isspace((unsigned char)*offsetTrimmed)) {
                     offsetTrimmed++;
