@@ -1,6 +1,7 @@
 name: Build and release dispel
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*.*.*'   # nur bei getaggten Commits wie v1.1.0
