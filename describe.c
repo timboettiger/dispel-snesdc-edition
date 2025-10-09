@@ -409,9 +409,6 @@ const char* describe(unsigned long pos, const char* input, const char *translati
     if (mainInput[0] == '$') {
         char* hex_memory = &mainInput[1];
         unsigned long dec_memory = strtoul(hex_memory, NULL, 16);
-        //printf("%lu ", dec_memory);
-        //printf("%lu ", patch_address_start);
-        //printf("%lu ", patch_address_end);
         int internal = dec_memory >= patch_address_start && dec_memory <= patch_address_end;
         int jump_size = dec_memory - pos;
 

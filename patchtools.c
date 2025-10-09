@@ -29,20 +29,22 @@ int handleDeadCodePatch(FILE **fout, unsigned char **data, unsigned long len, un
         unsigned long actual_bytes = len - *rpos - 8;
         unsigned long max_bytes = length ? (length * 4) : 0;
 
+        fprintf(*fout, "; Action Replay DEADC0DE Cheat\n");
+        fprintf(*fout, ";   - Address-Hook: 0x%06lX\n", address);
+        if (length == 0) {
+            fprintf(*fout, ";   - Length: Dynamic (until EOF)\n");
+        } else {
+            fprintf(*fout, ";   - Length: %u DWORDs (%u bytes)\n", length, length * 4);
+        }
+        fprintf(*fout, ";\n");
+
         patch_address_start = address;
         patch_address_end = address + actual_bytes;
-        //printf(">%lu ", patch_address_start);
-        //printf("%lu< ", patch_address_end);
 
         // Output patch information if not in silent mode
         if (!flagged(SILENT)) {
-            fprintf(*fout, "; Action Replay DEADC0DE patches %lu bytes from 0x%06lX:\n", length == 0 ? actual_bytes : max_bytes, address);
-            if (length == 0) {
-                fprintf(*fout, "; No length defined. Dynamic mode.\n");
-            }
             if (max_bytes && (actual_bytes != max_bytes)) {
-                fprintf(*fout, "; Warning: Patch length (%lu bytes) mismatch. Allowed length: %lu bytes.\n",
-                       actual_bytes, max_bytes);
+                fprintf(*fout, "; WARNING! Patch length mismatch: expected %zu bytes, got %zu.\n; The cheat may be truncated, or its length byte may be incorrect.\n;\n", actual_bytes, max_bytes);
             }
         }
 
