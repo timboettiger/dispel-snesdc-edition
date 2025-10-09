@@ -33,13 +33,14 @@ jobs:
           msystem: MINGW64
           update: true
           install: >-
+            make
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-libgnurx
       - name: Build (Windows via MSYS2)
         if: runner.os == 'Windows'
         shell: msys2 {0}
         run: |
-          make CC=x86_64-w64-mingw32-gcc
+          make
 
       - name: Prepare binary
         shell: bash
@@ -60,6 +61,9 @@ jobs:
               chmod +x "release/dispel-${TAG}-macos"
               ;;
           esac
+
+      - name: List release files
+        run: ls -l release
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v4
