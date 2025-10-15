@@ -25,7 +25,7 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 extern unsigned long patch_address_start;
 extern unsigned long patch_address_end;
 void process_template_multi(const char* tpl, const char** replacements, size_t repl_count, char* output,
- size_t out_size);
+ size_t out_size, unsigned long pos);
 //void process_template(const char* tpl, const char* replacement, const char* currentBankHex2, char* output, size_t out_size);
 void extract_placeholder(const char *descriptionTemplate, char *placeholder);
 void convertToHexFormat(const char* address, char* convertedAddress);

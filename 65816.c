@@ -563,7 +563,6 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
         strcpy(ibuf,"xce");
         break;
     default:
-        // Illegal
         printf("Unhandled instruction: %02X\n",mem[0]);
         exit(1);
     };
@@ -871,7 +870,6 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     case 0xB0:
     case 0xD0:
     case 0xF0:
-        // Calculate the signed value of the param
         sval = (mem[1]>127) ? (mem[1]-256) : mem[1];
         sprintf(pbuf, "$%04lX", (pos+sval+2) & 0xFFFF);
         offset = 2;
@@ -880,7 +878,6 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     case 0x62:
         // Program Counter Relative Long
     case 0x82:
-        // Calculate the signed value of the param
         sval = mem[1] + mem[2]*256;
         sval = (sval>32767) ? (sval-65536) : sval;
         sprintf(pbuf, "$%04lX", (pos+sval+3) & 0xFFFF);
@@ -922,9 +919,8 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
         sprintf(pbuf,"$%02X,S",mem[1]);
         offset = 2;
         break;
-        // WDM mode
+        // WDM mode / COP / BRK data byte
     case 0x42:
-        // Stack/Interrupt
     case 0x00:
         if (flagged(AR_PATCH_MODE))
         {
@@ -938,13 +934,11 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
         break;
         // Immediate (Invariant)
     case 0xC2:
-        // REP following
         *flag=*flag&~mem[1];
         sprintf(pbuf,"#$%02X",mem[1]);
         offset = 2;
         break;
     case 0xE2:
-        // SEP following
         *flag = *flag|mem[1];
         sprintf(pbuf, "#$%02X", mem[1]);
         offset = 2;
@@ -996,8 +990,7 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     }
     hbuf[offset*2] = '\0';
 
-    // Build description once using the new multi-operand-aware describe()
-    // Input to describe: "mnemonic[,operands...]"
+    // Build description via describe(): "mnemonic[,operands]"
     char composed[256];
     if (pbuf[0] != '\0') {
         snprintf(composed, sizeof(composed), "%s,%s", ibuf, pbuf);
@@ -1006,11 +999,11 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     }
     const char *desc_text = describe(pos, composed, "@s");
 
-    // Wrap into a comment with a single process_template_multi call: "; @s."
+    // Wrap into a comment with process_template_multi: "; @s."
     static char explanation[256];
     const char *comment_tpl = "; @s.";
     const char *repl_list[1] = { desc_text };
-    process_template_multi(comment_tpl, repl_list, 1, explanation, sizeof(explanation));
+    process_template_multi(comment_tpl, repl_list, 1, explanation, sizeof(explanation), pos);
 
     column address = (column){12, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos & 0xFFFF)};
     column hexcode = (column){12, hbuf};
@@ -1024,7 +1017,6 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
     column description = (column){0, explanation};
 
     if (strcmp(option(FORMAT), "standard") == 0) {
-        // Fixed-width output: [Address] [Hex dump] [Instruction]
         snprintf(inst, 256,
                  "%-*.*s%-*.*s%-*.*s",
                  address.width, address.width, address.text,
@@ -1032,11 +1024,9 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
                  machinecode.width, machinecode.width, machinecode.text);
     }
     else if (strcmp(option(FORMAT), "assembler") == 0) {
-        // Only instruction (mnemonic + operands)
         snprintf(inst, 256, "%s", machinecode.text);
     }
     else if (strcmp(option(FORMAT), "annotated") == 0) {
-        // Fixed-width output with comment column
         snprintf(inst, 1024,
                  "%-*.*s%-*.*s%-*.*s%s",
                  address.width, address.width, address.text,

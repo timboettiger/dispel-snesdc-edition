@@ -83,7 +83,6 @@ TranslationEntry translationTable[] = {
     {"^0x213D$", "OPVCT - Vertical Scanline Position"},
     {"^0x213E$", "STAT77 - PPU Status Flag"},
     {"^0x213F$", "STAT78 - PPU Status Flag"},
-    /* Fallback for any PPU register in 2100–213F */
     {"^0x21[0-3][0-9A-Fa-f]{2}$", "PPU Register (at @m)"},
 
     // ---------------------------------
@@ -144,7 +143,6 @@ TranslationEntry translationTable[] = {
     {"^0x421D$", "JOY3H - Joypad 3 Data (High)"},
     {"^0x421E$", "JOY4L - Joypad 4 Data (Low)"},
     {"^0x421F$", "JOY4H - Joypad 4 Data (High)"},
-    /* Fallback for 4200–421F */
     {"^0x42[0-1][0-9A-Fa-f]{2}$", "CPU/PPU I/O Register (at @m)"},
 
     // --------------
@@ -169,7 +167,6 @@ TranslationEntry translationTable[] = {
     // ------------------------------
     {"^0x7E[0-9A-Fa-f]{4}$", "Work RAM (WRAM) (at @m)"},
     {"^0x7F[0-9A-Fa-f]{4}$", "Mirror of WRAM (at @m)"},
-    /* 16-bit addresses (without bank) */
     {"^0x0[0-1][0-9A-Fa-f]{3}$", "Low WRAM mirror ($7E:0000–$7E:1FFF) (at @m)"},
 
     // ---------------------------------------------
@@ -182,24 +179,22 @@ TranslationEntry translationTable[] = {
     // ------------------------------------
     // Instruction descriptions (65C816)
     // ------------------------------------
-    /* NOTE: Keep @s for operands because they may be immediates or indexed.
-       Use @m only where a memory address is guaranteed (we cannot know addressing
-       mode from mnemonic alone). */
     {"^adc$", "Add with carry to @s"},
     {"^and$", "Logical AND with @s"},
     {"^asl$", "Arithmetic shift left on @s"},
+
+    /* Branch targets are memory: use @m so 16-bit operands render as BB/aacc */
     {"^bcc$", "Branch to @m if carry is clear"},
     {"^bcs$", "Branch to @m if carry is set"},
     {"^beq$", "Branch to @m if equal"},
-    {"^bit$", "Test bits in @s"},
     {"^bmi$", "Branch to @m if minus"},
     {"^bne$", "Branch to @m if not equal"},
     {"^bpl$", "Branch to @m if positive"},
     {"^bra$", "Unconditional branch to @m"},
-    {"^brk$", "Force break"},
-    {"^brl$", "Branch long to @s"},
+    {"^brl$", "Branch long to @m"},
     {"^bvc$", "Branch to @m if overflow is clear"},
     {"^bvs$", "Branch to @m if overflow is set"},
+
     {"^clc$", "Clear carry flag"},
     {"^cld$", "Clear decimal mode flag"},
     {"^cli$", "Clear interrupt disable flag"},
@@ -215,18 +210,22 @@ TranslationEntry translationTable[] = {
     {"^inc$", "Increment value at @s"},
     {"^inx$", "Increment X register"},
     {"^iny$", "Increment Y register"},
-    /* Jumps/subroutines always target memory; prefer @m for clarity */
+
+    /* Jumps/subroutines already use @m */
     {"^jmp$", "Jump to @m"},
     {"^jml$", "Long jump to @m"},
     {"^jsr$", "Jump to subroutine at @m"},
     {"^jsl$", "Long jump to subroutine at @m"},
+
     {"^lda$", "Load accumulator with value from @s"},
     {"^ldx$", "Load X register with @s"},
     {"^ldy$", "Load Y register with @s"},
     {"^lsr$", "Logical shift right on @s"},
-    /* MVN/MVP operands are bank bytes, not full addresses → keep @s */
+
+    /* MVN/MVP operands are bank bytes, not full addresses */
     {"^mvn$", "Block move negative from source @s to destination @s"},
     {"^mvp$", "Block move positive from source @s to destination @s"},
+
     {"^nop$", "No operation"},
     {"^ora$", "Logical OR with @s"},
     {"^pea$", "Push effective address @m onto stack"},
@@ -283,7 +282,7 @@ TranslationEntry translationTable[] = {
 
 const int translationTableSize = sizeof(translationTable) / sizeof(TranslationEntry);
 
-/* Converts $-style addresses to 0x-prefixed hex (pass-through for others) */
+/* $xxxx -> 0xXXXX (pass-through otherwise) */
 void convertToHexFormat(const char* address, char* out) {
     if (address[0] == '$') {
         sprintf(out, "0x%s", address + 1);
@@ -292,22 +291,18 @@ void convertToHexFormat(const char* address, char* out) {
     }
 }
 
-/* Converts immediates (#$.. or #..) to decimal wrapped in single quotes */
+/* #$.. or #.. -> decimal in single quotes */
 void convertToDecFormat(const char* number, char* out) {
     if (number[0] == '#') {
-        long v;
-        if (number[1] == '$') {
-            v = strtol(number + 2, NULL, 16);
-        } else {
-            v = strtol(number + 1, NULL, 10);
-        }
+        long v = (number[1] == '$') ? strtol(number + 2, NULL, 16)
+                                    : strtol(number + 1, NULL, 10);
         sprintf(out, "'%ld'", v);
     } else {
         strcpy(out, number);
     }
 }
 
-/* Converts immediate values to 8-bit binary with 0b prefix */
+/* #imm -> 0bxxxxxxxx (8-bit) */
 void convertToFlagFormat(const char* number, char* out) {
     long v = 0;
     if (number[0] == '#') {
@@ -315,41 +310,24 @@ void convertToFlagFormat(const char* number, char* out) {
                                : strtol(number + 1, NULL, 10);
         v &= 0xFF;
         char bits[9] = {0};
-        for (int i = 7; i >= 0; --i)
-            bits[7 - i] = (v & (1 << i)) ? '1' : '0';
+        for (int i = 7; i >= 0; --i) bits[7 - i] = (v & (1 << i)) ? '1' : '0';
         sprintf(out, "0b%s", bits);
     } else {
         strcpy(out, number);
     }
 }
 
-/* NEW: Convert a memory-looking token to bb/aacc.
- * Accepts forms like "$1234", "$001234", "0x1234", "0x001234",
- * as well as wrapped/suffixed variants "($1234)", "[$1234]", "$1234,X", etc.
- * If only 4 hex digits are found -> bank=00. If 6 -> use high 2 as bank.
- * If no 4+ hex digits are found, falls back to hex-formatting.
- */
-void convertToMemFormat(const char* token, char* out) {
+/* token -> bb/aacc using current bank for 2-byte addresses */
+void convertToMemFormat(const char* token, char* out, unsigned long pos) {
     char hex[16] = {0};
     int hlen = 0;
-
-    /* Scan token and collect continuous hex digits after an optional 0x/$
-       or any bracket; stop only when we amassed enough or hit non-hex after start. */
     const char* p = token;
 
-    /* Skip wrappers and prefixes gracefully */
     while (*p && (*p=='(' || *p=='[' || *p==' ')) p++;
-
-    if (p[0]=='#') {
-        /* immediates are not memory addresses: leave as-is */
-        strcpy(out, token);
-        return;
-    }
-
+    if (p[0]=='#') { strcpy(out, token); return; }
     if (p[0]=='0' && (p[1]=='x' || p[1]=='X')) p += 2;
     else if (p[0]=='$') p += 1;
 
-    /* Collect hex digits possibly across the token until a non-hex */
     const char* q = p;
     while (*q && isxdigit((unsigned char)*q) && hlen < (int)sizeof(hex)-1) {
         hex[hlen++] = (char)toupper((unsigned char)*q);
@@ -357,7 +335,6 @@ void convertToMemFormat(const char* token, char* out) {
     }
 
     if (hlen >= 6) {
-        /* Use last 6 digits to be robust (e.g., if a bank is embedded) */
         const char* base = hex + (hlen - 6);
         char bb[3] = { base[0], base[1], 0 };
         char aacc[5] = { base[2], base[3], base[4], base[5], 0 };
@@ -365,47 +342,78 @@ void convertToMemFormat(const char* token, char* out) {
     } else if (hlen >= 4) {
         const char* base = hex + (hlen - 4);
         char aacc[5] = { base[0], base[1], base[2], base[3], 0 };
-        sprintf(out, "00/%s", aacc);
+        unsigned long bb = (pos >> 16) & 0xFFUL;
+        sprintf(out, "%02lX/%s", bb, aacc);
     } else {
-        /* Not a parseable memory address: present as hex-form (or raw) */
         convertToHexFormat(token, out);
     }
 }
 
-/* Smart conversion selector:
- *   - mode == 'b' -> binary (for immediates)
- *   - mode == 'h' -> force hex formatting
- *   - mode == 'm' -> memory bb/aacc formatting (2-byte => 00/aacc; 3-byte => bb/aacc)
- *   - default ('s'): immediates -> decimal in single quotes, otherwise hex
- */
-static void convertSmart(const char* repl, char mode, char* out) {
+/* smart formatter: @b/@h/@m/@s */
+static void convertSmart(const char* repl, char mode, char* out, unsigned long pos) {
     if (mode == 'b') { convertToFlagFormat(repl, out); return; }
     if (mode == 'h') { convertToHexFormat(repl, out);  return; }
-    if (mode == 'm') { convertToMemFormat(repl, out);  return; }
-
-    /* default @s */
+    if (mode == 'm') { convertToMemFormat(repl, out, pos); return; }
     if (repl[0] == '#') convertToDecFormat(repl, out);
     else                convertToHexFormat(repl, out);
 }
 
-/* Multi-operand template processor.
- * Replaces *each* unescaped @X (X in {s,b,h,m}) with the next replacement string,
- * applying smart conversion per placeholder mode. If replacements are exhausted,
- * the last replacement is reused.
- * Escaped '@' (written as '\@' in the source literal) are emitted literally '@'.
- */
+/* Try to resolve a token via translationTable (e.g., $421A -> JOY2L ...). */
+static bool resolve_operand_via_table(unsigned long pos,
+                                      const char* token,
+                                      char* out,
+                                      size_t out_size)
+{
+    regex_t regex;
+    char raw_hex[128]; raw_hex[0] = '\0';
+
+    convertToHexFormat(token, raw_hex);
+
+    char norm[128] = {0};
+    {
+        const char* p = token;
+        while (*p && (*p=='(' || *p=='[' || *p==' ')) p++;
+        if (p[0]=='0' && (p[1]=='x' || p[1]=='X')) {
+            snprintf(norm, sizeof(norm), "0x%.*s",  (int)strspn(p+2, "0123456789abcdefABCDEF"), p+2);
+        } else if (p[0]=='$') {
+            snprintf(norm, sizeof(norm), "0x%.*s",  (int)strspn(p+1, "0123456789abcdefABCDEF"), p+1);
+        }
+        for (char* q = norm; *q; ++q) *q = (char)toupper((unsigned char)*q);
+    }
+
+    for (int i = 0; i < translationTableSize; i++) {
+        const char* pat = translationTable[i].pattern;
+        if (regcomp(&regex, pat, REG_EXTENDED | REG_ICASE) != 0) continue;
+
+        int ok = 1;
+        if (ok && raw_hex[0]) ok = (regexec(&regex, raw_hex, 0, NULL, 0) == 0);
+        if (!ok && norm[0])   ok = (regexec(&regex, norm,    0, NULL, 0) == 0);
+
+        regfree(&regex);
+
+        if (ok) {
+            const char* tpl = translationTable[i].description;
+            const char* repl_list[1] = { token };
+            process_template_multi(tpl, repl_list, 1, out, out_size, pos);
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Multi-operand template processor with 'pos' awareness for @m. */
 void process_template_multi(const char* tpl,
                             const char** replacements,
                             size_t repl_count,
                             char* output,
-                            size_t out_size)
+                            size_t out_size,
+                            unsigned long pos)
 {
     size_t i = 0, k = 0;
     bool escape = false;
-    size_t ri = 0; /* replacement index */
+    size_t ri = 0;
 
     if (repl_count == 0) {
-        /* nothing to replace with: just copy while unescaping */
         while (tpl[i] != '\0' && k + 1 < out_size) {
             if (!escape && tpl[i] == '\\') { escape = true; i++; continue; }
             output[k++] = tpl[i++];
@@ -416,47 +424,38 @@ void process_template_multi(const char* tpl,
     }
 
     while (tpl[i] != '\0' && k + 1 < out_size) {
-        if (!escape && tpl[i] == '\\') { /* start escape, skip backslash */
-            escape = true;
-            i++;
-            continue;
-        }
+        if (!escape && tpl[i] == '\\') { escape = true; i++; continue; }
 
         if (!escape && tpl[i] == '@' && tpl[i + 1] != '\0') {
             char mode = tpl[i + 1];
             if (mode == 's' || mode == 'b' || mode == 'h' || mode == 'm') {
                 const char* cur = replacements[ri < repl_count ? ri : repl_count - 1];
                 char buf[256]; buf[0] = '\0';
-                convertSmart(cur, mode, buf);
+                convertSmart(cur, mode, buf, pos);
                 size_t len = strnlen(buf, sizeof(buf));
                 if (k + len >= out_size) len = out_size - 1 - k;
                 memcpy(output + k, buf, len);
                 k += len;
                 i += 2;
-                if (ri + 1 < repl_count) ri++; /* advance until last, then stick */
+                if (ri + 1 < repl_count) ri++;
                 continue;
             }
         }
 
-        /* regular char or escaped '@' */
         output[k++] = tpl[i++];
         escape = false;
     }
     output[k] = '\0';
 }
 
-/* Keep for compatibility – returns first placeholder found, defaults to @s */
+/* Backward-compat helper: returns the first placeholder, defaults to @s */
 void extract_placeholder(const char *descriptionTemplate, char *placeholder) {
     int length = (int)strlen(descriptionTemplate);
     int i = 0;
-    placeholder[0] = '@';
-    placeholder[1] = 's';
-    placeholder[2] = '\0';
-
+    placeholder[0] = '@'; placeholder[1] = 's'; placeholder[2] = '\0';
     while (i < length - 1) {
         if (descriptionTemplate[i] == '@' &&
-            ((descriptionTemplate[i + 1] >= 'A' && descriptionTemplate[i + 1] <= 'Z') ||
-             (descriptionTemplate[i + 1] >= 'a' && descriptionTemplate[i + 1] <= 'z'))) {
+            (isalpha((unsigned char)descriptionTemplate[i + 1]))) {
             placeholder[0] = descriptionTemplate[i];
             placeholder[1] = descriptionTemplate[i + 1];
             placeholder[2] = '\0';
@@ -473,7 +472,6 @@ const char* describe(unsigned long pos, const char* input, const char *translati
     static char explanation[512];
     static char tempExplanation[1024];
 
-    /* Parse input: main token (before first comma) and operands (after) */
     char tempInput[256];
     strncpy(tempInput, input, sizeof(tempInput));
     tempInput[sizeof(tempInput) - 1] = '\0';
@@ -483,12 +481,9 @@ const char* describe(unsigned long pos, const char* input, const char *translati
 
     char *p = tempInput;
     while (*p && token_count < 8) {
-        /* split by comma */
         char *comma = strchr(p, ',');
         if (comma) *comma = '\0';
-        /* trim leading spaces */
         while (isspace((unsigned char)*p)) p++;
-        /* trim trailing spaces */
         char *end = p + strlen(p);
         while (end > p && isspace((unsigned char)end[-1])) { end--; }
         *end = '\0';
@@ -502,40 +497,33 @@ const char* describe(unsigned long pos, const char* input, const char *translati
     size_t operand_count = (token_count > 1) ? (token_count - 1) : 0;
     for (size_t i = 0; i < operand_count; ++i) operands[i] = tokens[i + 1];
 
-    /* Build lookupValue for the main token (addresses become hex with optional patch detail) */
     if (mainInput[0] == '$') {
         char* hex_memory = (char*)&mainInput[1];
         unsigned long dec_memory = strtoul(hex_memory, NULL, 16);
         int internal = dec_memory >= patch_address_start && dec_memory <= patch_address_end;
         int jump_size = (int)(dec_memory - pos);
-
-        static char internal_jump_details[256];
+        static char internal_jump_details[64];
         if (internal)
             snprintf(internal_jump_details, sizeof(internal_jump_details),
                      " (patch internal by %i bytes)", jump_size);
         else
             internal_jump_details[0] = '\0';
-
         snprintf(lookupValue, sizeof(lookupValue), "0x%s%s", hex_memory, internal_jump_details);
     } else {
         strncpy(lookupValue, mainInput, sizeof(lookupValue));
         lookupValue[sizeof(lookupValue) - 1] = '\0';
     }
 
-    /* Try table matches */
     for (int i = 0; i < translationTableSize; i++) {
         if (regcomp(&regex, translationTable[i].pattern, REG_EXTENDED | REG_ICASE) != 0) {
-            printf("Failed to compile regex for pattern: %s\n", translationTable[i].pattern);
             continue;
         }
-
         result = regexec(&regex, lookupValue, 0, NULL, 0);
         regfree(&regex);
 
         if (result == 0) {
             const char* template = translationTable[i].description;
 
-            /* Decide whether this entry is an instruction (pattern ^[A-Za-z]+$) */
             bool is_instruction = false;
             {
                 const char* pat = translationTable[i].pattern;
@@ -546,10 +534,6 @@ const char* describe(unsigned long pos, const char* input, const char *translati
                 }
             }
 
-            /* Build replacement list:
-             * - instructions: use operands in order (supports multiple operands)
-             * - non-instructions: replace placeholders with the looked-up address/name itself
-             */
             const char* repl_buf[8];
             size_t repl_cnt = 0;
 
@@ -558,8 +542,14 @@ const char* describe(unsigned long pos, const char* input, const char *translati
                     repl_buf[0] = "";
                     repl_cnt = 1;
                 } else {
+                    static char resolved[8][256];
                     for (size_t r = 0; r < operand_count && r < 8; ++r) {
-                        repl_buf[r] = operands[r];
+                        const char* tok = operands[r];
+                        if (resolve_operand_via_table(pos, tok, resolved[r], sizeof(resolved[r]))) {
+                            repl_buf[r] = resolved[r];
+                        } else {
+                            repl_buf[r] = tok;
+                        }
                     }
                     repl_cnt = operand_count;
                 }
@@ -568,17 +558,16 @@ const char* describe(unsigned long pos, const char* input, const char *translati
                 repl_cnt = 1;
             }
 
-            process_template_multi(template, repl_buf, repl_cnt, tempExplanation, sizeof(tempExplanation));
+            process_template_multi(template, repl_buf, repl_cnt, tempExplanation, sizeof(tempExplanation), pos);
             strncpy(explanation, tempExplanation, sizeof(explanation));
             explanation[sizeof(explanation) - 1] = '\0';
             return explanation;
         }
     }
 
-    /* Fallback: use provided translationTemplate with the main token as single replacement */
     {
         const char* repl_buf[1] = { lookupValue };
-        process_template_multi(translationTemplate, repl_buf, 1, tempExplanation, sizeof(tempExplanation));
+        process_template_multi(translationTemplate, repl_buf, 1, tempExplanation, sizeof(tempExplanation), pos);
         strncpy(explanation, tempExplanation, sizeof(explanation));
         explanation[sizeof(explanation) - 1] = '\0';
         return explanation;
