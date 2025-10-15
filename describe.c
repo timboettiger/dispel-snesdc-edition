@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <ctype.h>
+
 #include "dispel.h"
 
 // 65C816 focussed translation table for memory-mapped registers
@@ -239,7 +241,7 @@ TranslationEntry translationTable[] = {
     {"^plp$", "Pull processor status from stack"},
     {"^plx$", "Pull X register from stack"},
     {"^ply$", "Pull Y register from stack"},
-    {"^rep$", "Clear processor status bits present in \\@b"},
+    {"^rep$", "Clear processor status bits present in @b"},
     {"^rol$", "Rotate left on \\@s"},
     {"^ror$", "Rotate right on \\@s"},
     {"^rti$", "Return from interrupt"},
@@ -249,7 +251,7 @@ TranslationEntry translationTable[] = {
     {"^sec$", "Set carry flag"},
     {"^sed$", "Set decimal mode flag"},
     {"^sei$", "Set interrupt disable flag"},
-    {"^sep$", "Set processor status bits present in \\@b"},
+    {"^sep$", "Set processor status bits present in @b"},
     {"^sta$", "Store accumulator at \\@s"},
     {"^stp$", "Stop processor"},
     {"^stx$", "Store X register at \\@s"},
@@ -276,80 +278,94 @@ TranslationEntry translationTable[] = {
 };
 
 const int translationTableSize = sizeof(translationTable) / sizeof(TranslationEntry);
-
-void convertToHexFormat(const char* address, char* convertedAddress) {
+// Conversion helper: Converts $-style addresses to 0x-prefixed hex
+void convertToHexFormat(const char* address, char* out) {
     if (address[0] == '$') {
-        sprintf(convertedAddress, "0x%s", address + 1);
+        sprintf(out, "0x%s", address + 1);
     } else {
-        strcpy(convertedAddress, address);
+        strcpy(out, address);
     }
 }
 
-void convertToDecFormat(const char* number, char* convertedNumber) {
-    if (number[0] == '#' && number[1] == '$') {
-        int decimalValue = (int)strtol(number + 2, NULL, 16);
-        sprintf(convertedNumber, "constant '%d'", decimalValue);
-    }
-    else {
-        strcpy(convertedNumber, number);
-    }
-}
-
-void convertToFlagFormat(const char* number, char* convertedNumber) {
-    if (number[0] == '#' && number[1] == '$') {
-        int decimalValue = (int)strtol(number + 2, NULL, 16);
-        char binaryString[9] = {0};
-        for (int i = 7; i >= 0; i--) {
-            binaryString[7 - i] = (decimalValue & (1 << i)) ? '1' : '0';
+// Converts immediates (#$..) to decimal values in single quotes
+void convertToDecFormat(const char* number, char* out) {
+    if (number[0] == '#') {
+        long v;
+        if (number[1] == '$') {
+            v = strtol(number + 2, NULL, 16);
+        } else {
+            v = strtol(number + 1, NULL, 10);
         }
-        sprintf(convertedNumber, "%s (binary representation of '%d')", binaryString, decimalValue);
-    } else if (number[0] == '#') {
-        int decimalValue = (int)strtol(number + 1, NULL, 10);
-        char binaryString[9] = {0};
-        for (int i = 7; i >= 0; i--) {
-            binaryString[7 - i] = (decimalValue & (1 << i)) ? '1' : '0';
-        }
-        sprintf(convertedNumber, "%s (binary representation of '%d')", binaryString, decimalValue);
+        sprintf(out, "'%ld'", v);
     } else {
-        strcpy(convertedNumber, number);
+        strcpy(out, number);
     }
 }
 
-void process_template(const char* descriptionTemplate, const char* replacement, char* output, size_t output_size) {
-    size_t i = 0, j = 0;
-    bool escaping = false;
-    bool replaced = false;
-    char temp[256] = {0};
+// Converts immediate values to 8-bit binary with 0b prefix
+void convertToFlagFormat(const char* number, char* out) {
+    long v = 0;
+    if (number[0] == '#') {
+        v = (number[1] == '$') ? strtol(number + 2, NULL, 16)
+                               : strtol(number + 1, NULL, 10);
+        v &= 0xFF;
+        char bits[9] = {0};
+        for (int i = 7; i >= 0; --i)
+            bits[7 - i] = (v & (1 << i)) ? '1' : '0';
+        sprintf(out, "0b%s", bits);
+    } else {
+        strcpy(out, number);
+    }
+}
 
-    while (descriptionTemplate[i] != '\0' && j < output_size - 1) {
-        if (descriptionTemplate[i] == '\\' && !escaping) {
-            escaping = true;
+// Smart conversion selector:
+//   - mode == 'b' -> binary
+//   - mode == 'h' -> force hex
+//   - mode == 'm' -> force memory address format
+//   - mode == 'r' -> force register address format
+//   - mode == 's' -> smart (immediate = decimal, otherwise hex)
+static void convertSmart(const char* repl, char mode, char* out) {
+    if (mode == 'b') { convertToFlagFormat(repl, out); return; }
+    if (mode == 'h') { convertToHexFormat(repl, out);  return; }
+
+    // default @s
+    if (repl[0] == '#') convertToDecFormat(repl, out);
+    else                convertToHexFormat(repl, out);
+}
+
+// Processes a description template and replaces placeholders (@s, @b, @h)
+//   - Escaped @ (using \@) are preserved literally
+//   - Replaces *all* unescaped placeholders
+void process_template(const char* tpl, const char* replacement,
+                      char* output, size_t out_size)
+{
+    size_t i = 0, k = 0;
+    bool escape = false;
+    while (tpl[i] != '\0' && k + 1 < out_size) {
+        if (!escape && tpl[i] == '\\') {
+            // Start escape sequence, skip backslash
+            escape = true;
             i++;
             continue;
-        } else if (descriptionTemplate[i] == '@' && descriptionTemplate[i + 1] == 's' && !escaping && !replaced) {
-            static char replacementValue[200];
-            convertToDecFormat(replacement, replacementValue);
-            strncat(temp, replacementValue, sizeof(temp) - strlen(temp) - 1);
-            j = strlen(temp);
-            i += 2;
-            replaced = true;
-            continue;
-        } else if (descriptionTemplate[i] == '@' && descriptionTemplate[i + 1] == 'b' && !escaping && !replaced) {
-            static char replacementValue[200];
-            convertToFlagFormat(replacement, replacementValue);
-            strncat(temp, replacementValue, sizeof(temp) - strlen(temp) - 1);
-            j = strlen(temp);
-            i += 2;
-            replaced = true;
-            continue;
-        } else {
-            temp[j++] = descriptionTemplate[i++];
         }
-        escaping = false;
+        if (!escape && tpl[i] == '@' && tpl[i + 1] != '\0') {
+            char mode = tpl[i + 1];
+            if (mode == 's' || mode == 'b' || mode == 'h') {
+                char buf[256]; buf[0] = '\0';
+                convertSmart(replacement, mode, buf);
+                size_t len = strnlen(buf, sizeof(buf));
+                if (k + len >= out_size) len = out_size - 1 - k;
+                memcpy(output + k, buf, len);
+                k += len;
+                i += 2;
+                continue;
+            }
+        }
+        // Normal character or escaped @
+        output[k++] = tpl[i++];
+        escape = false;
     }
-    temp[j] = '\0';
-    strncpy(output, temp, output_size);
-    output[output_size - 1] = '\0';
+    output[k] = '\0';
 }
 
 void extract_placeholder(const char *descriptionTemplate, char *placeholder) {

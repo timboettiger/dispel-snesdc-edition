@@ -929,6 +929,7 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	    if (flagged(AR_PATCH_MODE))
 		{
 			offset = 1;
+			pbuf[0] = '\0';
 			break;
 		}
 	case 0x02:
@@ -990,9 +991,10 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 	};
 
 	// Generate hex output
-	for (i=0; i<offset; i++) sprintf(hbuf+i*2,"%02X",mem[i]);
-	for (i=offset*2; i<8; i++) hbuf[i]=0x20;
-	hbuf[8]=0;
+	for (i = 0; i < offset; i++) {
+        sprintf(hbuf + i*2, "%02X", mem[i]);
+	}
+	hbuf[offset*2] = '\0';
 
 	char opcode[100], operand[100];
 	const char *template = "; @s.";
@@ -1010,25 +1012,45 @@ int disasm(unsigned char *mem, unsigned long pos, unsigned char *flag, char *ins
 
     static char explanation[100];
     static char temp[100];
+    char currentBank[3];
 
+    sprintf(currentBank, "%02lX", (pos >> 16) & 0xFF);
     process_template(template, opcode, temp, sizeof(temp));
     strncpy(explanation, temp, sizeof(explanation));
     process_template(explanation, operand, temp, sizeof(temp));
     strncpy(explanation, temp, sizeof(explanation));
 
-   	column address = {3, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos&0xFFFF)};
-    column hexcode = {3, hbuf};
-    column machinecode = {4, format("%s %s", ibuf, pbuf)};
+   	column address = {12, format("%02lX/%04lX:", (pos >> 16) & 0xFF, pos&0xFFFF)};
+    column hexcode = {12, hbuf};
+    char mcbuf[64];
+    if (pbuf[0] != '\0') {
+        snprintf(mcbuf, sizeof(mcbuf), "%s %s", ibuf, pbuf);
+    } else {
+        snprintf(mcbuf, sizeof(mcbuf), "%s", ibuf);
+    }
+    column machinecode = (column){16, mcbuf};
     column description = {0, explanation};
 
     if (strcmp(option(FORMAT), "standard") == 0) {
-        sprintf(inst, "%s", table(3, address, hexcode, machinecode));
+        // Fixed-width output: [Address] [Hex dump] [Instruction]
+        snprintf(inst, 256,
+                 "%-*.*s%-*.*s%-*.*s",
+                 address.width, address.width, address.text,
+                 hexcode.width, hexcode.width, hexcode.text,
+                 machinecode.width, machinecode.width, machinecode.text);
     }
     else if (strcmp(option(FORMAT), "assembler") == 0) {
-        sprintf(inst, "%s", table(1, machinecode));
+        // Only instruction (mnemonic + operands)
+        snprintf(inst, 256, "%s", machinecode.text);
     }
     else if (strcmp(option(FORMAT), "annotated") == 0) {
-        sprintf(inst, "%s", table(4, address, hexcode, machinecode, description));
+        // Fixed-width output with comment column
+        snprintf(inst, 1024,
+                 "%-*.*s%-*.*s%-*.*s%s",
+                 address.width, address.width, address.text,
+                 hexcode.width, hexcode.width, hexcode.text,
+                 machinecode.width, machinecode.width, machinecode.text,
+                 description.text ? description.text : "");
     }
 
 	return offset;
