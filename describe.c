@@ -1,8 +1,8 @@
 /* describe.c
- * description generator for 65C816 opcodes and
+ * Description generator for 65C816 opcodes and
  * SNES memory-mapped registers
  * Created 190924 by Tim Böttiger
- * Last Modified 081025
+ * Last Modified 151025
  */
 
 #include <string.h>
@@ -14,7 +14,7 @@
 
 #include "dispel.h"
 
-// 65C816 focussed translation table for memory-mapped registers
+/* 65C816-focused translation table for memory-mapped registers and opcodes */
 TranslationEntry translationTable[] = {
     // ---------------
     // PPU (2100–213F)
@@ -83,11 +83,11 @@ TranslationEntry translationTable[] = {
     {"^0x213D$", "OPVCT - Vertical Scanline Position"},
     {"^0x213E$", "STAT77 - PPU Status Flag"},
     {"^0x213F$", "STAT78 - PPU Status Flag"},
-    // Fallback, in case specific addresses are missing:
+    /* Fallback for any PPU register in 2100–213F */
     {"^0x21[0-3][0-9A-Fa-f]{2}$", "PPU Register (at @s)"},
 
     // ---------------------------------
-    // APU I/O (CPU-seitig) & WRAM-Ports
+    // APU I/O (CPU side) & WRAM ports
     // ---------------------------------
     {"^0x2140$", "APUI0 - APU I/O Port 0"},
     {"^0x2141$", "APUI1 - APU I/O Port 1"},
@@ -105,13 +105,13 @@ TranslationEntry translationTable[] = {
     {"^0x218B$", "S-RTC Status Register"},
 
     // --------------------
-    // Joypad Latches (CPU)
+    // Joypad latches (CPU)
     // --------------------
     {"^0x4016$", "JOYSER0 - Joypad Port 1"},
     {"^0x4017$", "JOYSER1 - Joypad Port 2"},
 
     // ------------------------------------------
-    // CPU-Internal & Joypad Readback (4200–421F)
+    // CPU-internal & joypad readback (4200–421F)
     // ------------------------------------------
     {"^0x4200$", "NMITIMEN - Interrupt Enable Flags"},
     {"^0x4201$", "WRIO - Programmable I/O Port"},
@@ -144,11 +144,11 @@ TranslationEntry translationTable[] = {
     {"^0x421D$", "JOY3H - Joypad 3 Data (High)"},
     {"^0x421E$", "JOY4L - Joypad 4 Data (Low)"},
     {"^0x421F$", "JOY4H - Joypad 4 Data (High)"},
-    // Fallback, in case specific registers are missing:
+    /* Fallback for 4200–421F */
     {"^0x42[0-1][0-9A-Fa-f]{2}$", "CPU/PPU I/O Register (at @s)"},
 
     // --------------
-    // Expansion Port
+    // Expansion port
     // --------------
     {"^0x4800$", "EXPANSION - Expansion Port Register 0"},
     {"^0x4801$", "EXPANSION - Expansion Port Register 1"},
@@ -160,74 +160,73 @@ TranslationEntry translationTable[] = {
     {"^0x4807$", "EXPANSION - Expansion Port Register 7"},
 
     // ------------------------
-    // DMA-Register (4300–437F)
+    // DMA registers (4300–437F)
     // ------------------------
     {"^0x43[0-7][0-9A-Fa-f]{2}$", "DMA Register (Channel 0–7, at @s)"},
 
     // ------------------------------
-    // WRAM (7E/7F) & Low-WRAM-Mirror
+    // WRAM (7E/7F) & low-WRAM mirror
     // ------------------------------
     {"^0x7E[0-9A-Fa-f]{4}$", "Work RAM (WRAM) (at @s)"},
     {"^0x7F[0-9A-Fa-f]{4}$", "Mirror of WRAM (at @s)"},
-    // 16-bit addresses (without bank)
+    /* 16-bit addresses (without bank) */
     {"^0x0[0-1][0-9A-Fa-f]{3}$", "Low WRAM mirror ($7E:0000–$7E:1FFF) (at @s)"},
 
     // ---------------------------------------------
-    // Reset/Interrupt-Vectors (Bank $00)
-    // (SNES usage depends on CPU-Emu/Native-Detail)
+    // Reset/Interrupt vectors (Bank $00)
     // ---------------------------------------------
     {"^0x00FFFA$", "NMI Vector"},
     {"^0x00FFFC$", "Reset Vector"},
     {"^0x00FFFE$", "IRQ/BRK Vector"},
 
     // ------------------------------------
-    // description of instructions (65C816)
+    // Instruction descriptions (65C816)
     // ------------------------------------
-    {"^adc$", "Add with carry to \\@s"},
-    {"^and$", "Logical AND with \\@s"},
-    {"^asl$", "Arithmetic shift left on \\@s"},
-    {"^bcc$", "Branch to \\@s if carry is clear"},
-    {"^bcs$", "Branch to \\@s if carry is set"},
-    {"^beq$", "Branch to \\@s if equal"},
-    {"^bit$", "Test bits in \\@s"},
-    {"^bmi$", "Branch to \\@s if minus"},
-    {"^bne$", "Branch to \\@s if not equal"},
-    {"^bpl$", "Branch to \\@s if positive"},
-    {"^bra$", "Unconditional branch to \\@s"},
+    {"^adc$", "Add with carry to @s"},
+    {"^and$", "Logical AND with @s"},
+    {"^asl$", "Arithmetic shift left on @s"},
+    {"^bcc$", "Branch to @s if carry is clear"},
+    {"^bcs$", "Branch to @s if carry is set"},
+    {"^beq$", "Branch to @s if equal"},
+    {"^bit$", "Test bits in @s"},
+    {"^bmi$", "Branch to @s if minus"},
+    {"^bne$", "Branch to @s if not equal"},
+    {"^bpl$", "Branch to @s if positive"},
+    {"^bra$", "Unconditional branch to @s"},
     {"^brk$", "Force break"},
-    {"^brl$", "Branch long to \\@s"},
-    {"^bvc$", "Branch to \\@s if overflow is clear"},
-    {"^bvs$", "Branch to \\@s if overflow is set"},
+    {"^brl$", "Branch long to @s"},
+    {"^bvc$", "Branch to @s if overflow is clear"},
+    {"^bvs$", "Branch to @s if overflow is set"},
     {"^clc$", "Clear carry flag"},
     {"^cld$", "Clear decimal mode flag"},
     {"^cli$", "Clear interrupt disable flag"},
     {"^clv$", "Clear overflow flag"},
-    {"^cmp$", "Compare accumulator with \\@s"},
+    {"^cmp$", "Compare accumulator with @s"},
     {"^cop$", "Coprocessor call"},
-    {"^cpx$", "Compare X register with \\@s"},
-    {"^cpy$", "Compare Y register with \\@s"},
-    {"^dec$", "Decrement value at \\@s"},
+    {"^cpx$", "Compare X register with @s"},
+    {"^cpy$", "Compare Y register with @s"},
+    {"^dec$", "Decrement value at @s"},
     {"^dex$", "Decrement X register"},
     {"^dey$", "Decrement Y register"},
-    {"^eor$", "Exclusive OR with \\@s"},
-    {"^inc$", "Increment value at \\@s"},
+    {"^eor$", "Exclusive OR with @s"},
+    {"^inc$", "Increment value at @s"},
     {"^inx$", "Increment X register"},
     {"^iny$", "Increment Y register"},
-    {"^jmp$", "Jump to \\@s"},
-    {"^jml$", "Long jump to \\@s"},
-    {"^jsr$", "Jump to subroutine at \\@s"},
-    {"^jsl$", "Long jump to subroutine at \\@s"},
-    {"^lda$", "Load accumulator with value from \\@s"},
-    {"^ldx$", "Load X register with \\@s"},
-    {"^ldy$", "Load Y register with \\@s"},
-    {"^lsr$", "Logical shift right on \\@s"},
-    {"^mvn$", "Block move negative from source \\@s to destination @s"},
-    {"^mvp$", "Block move positive from source \\@s to destination @s"},
+    {"^jmp$", "Jump to @s"},
+    {"^jml$", "Long jump to @s"},
+    {"^jsr$", "Jump to subroutine at @s"},
+    {"^jsl$", "Long jump to subroutine at @s"},
+    {"^lda$", "Load accumulator with value from @s"},
+    {"^ldx$", "Load X register with @s"},
+    {"^ldy$", "Load Y register with @s"},
+    {"^lsr$", "Logical shift right on @s"},
+    {"^mvn$", "Block move negative from source @s to destination @s"},
+    {"^mvp$", "Block move positive from source @s to destination @s"},
     {"^nop$", "No operation"},
-    {"^ora$", "Logical OR with \\@s"},
-    {"^pea$", "Push effective address \\@s onto stack"},
-    {"^pei$", "Push indirect address \\@s onto stack"},
-    {"^per$", "Push program counter relative address \\@s onto stack"},
+    {"^ora$", "Logical OR with @s"},
+    {"^pea$", "Push effective address @s onto stack"},
+    {"^pei$", "Push indirect address @s onto stack"},
+    {"^per$", "Push program counter relative address @s onto stack"},
     {"^pha$", "Push accumulator onto stack"},
     {"^phb$", "Push data bank register onto stack"},
     {"^phd$", "Push direct page register onto stack"},
@@ -242,28 +241,28 @@ TranslationEntry translationTable[] = {
     {"^plx$", "Pull X register from stack"},
     {"^ply$", "Pull Y register from stack"},
     {"^rep$", "Clear processor status bits present in @b"},
-    {"^rol$", "Rotate left on \\@s"},
-    {"^ror$", "Rotate right on \\@s"},
+    {"^rol$", "Rotate left on @s"},
+    {"^ror$", "Rotate right on @s"},
     {"^rti$", "Return from interrupt"},
     {"^rtl$", "Long return from subroutine"},
     {"^rts$", "Return from subroutine"},
-    {"^sbc$", "Subtract with carry from \\@s"},
+    {"^sbc$", "Subtract with carry from @s"},
     {"^sec$", "Set carry flag"},
     {"^sed$", "Set decimal mode flag"},
     {"^sei$", "Set interrupt disable flag"},
     {"^sep$", "Set processor status bits present in @b"},
-    {"^sta$", "Store accumulator at \\@s"},
+    {"^sta$", "Store accumulator at @s"},
     {"^stp$", "Stop processor"},
-    {"^stx$", "Store X register at \\@s"},
-    {"^sty$", "Store Y register at \\@s"},
-    {"^stz$", "Store zero at \\@s"},
+    {"^stx$", "Store X register at @s"},
+    {"^sty$", "Store Y register at @s"},
+    {"^stz$", "Store zero at @s"},
     {"^tax$", "Transfer accumulator to X register"},
     {"^tay$", "Transfer accumulator to Y register"},
     {"^tcd$", "Transfer accumulator to direct page register"},
     {"^tcs$", "Transfer accumulator to stack pointer"},
     {"^tdc$", "Transfer direct page register to accumulator"},
-    {"^trb$", "Test and reset bits at \\@s"},
-    {"^tsb$", "Test and set bits at \\@s"},
+    {"^trb$", "Test and reset bits at @s"},
+    {"^tsb$", "Test and set bits at @s"},
     {"^tsc$", "Transfer stack pointer to accumulator"},
     {"^tsx$", "Transfer stack pointer to X register"},
     {"^txa$", "Transfer X register to accumulator"},
@@ -278,7 +277,8 @@ TranslationEntry translationTable[] = {
 };
 
 const int translationTableSize = sizeof(translationTable) / sizeof(TranslationEntry);
-// Conversion helper: Converts $-style addresses to 0x-prefixed hex
+
+/* Converts $-style addresses to 0x-prefixed hex */
 void convertToHexFormat(const char* address, char* out) {
     if (address[0] == '$') {
         sprintf(out, "0x%s", address + 1);
@@ -287,7 +287,7 @@ void convertToHexFormat(const char* address, char* out) {
     }
 }
 
-// Converts immediates (#$..) to decimal values in single quotes
+/* Converts immediates (#$.. or #..) to decimal wrapped in single quotes */
 void convertToDecFormat(const char* number, char* out) {
     if (number[0] == '#') {
         long v;
@@ -302,7 +302,7 @@ void convertToDecFormat(const char* number, char* out) {
     }
 }
 
-// Converts immediate values to 8-bit binary with 0b prefix
+/* Converts immediate values to 8-bit binary with 0b prefix */
 void convertToFlagFormat(const char* number, char* out) {
     long v = 0;
     if (number[0] == '#') {
@@ -318,58 +318,80 @@ void convertToFlagFormat(const char* number, char* out) {
     }
 }
 
-// Smart conversion selector:
-//   - mode == 'b' -> binary
-//   - mode == 'h' -> force hex
-//   - mode == 'm' -> force memory address format
-//   - mode == 'r' -> force register address format
-//   - mode == 's' -> smart (immediate = decimal, otherwise hex)
+/* Smart conversion selector:
+ *   - mode == 'b' -> binary (for immediates)
+ *   - mode == 'h' -> force hex formatting
+ *   - default ('s'): immediates -> decimal in single quotes, otherwise hex
+ */
 static void convertSmart(const char* repl, char mode, char* out) {
     if (mode == 'b') { convertToFlagFormat(repl, out); return; }
     if (mode == 'h') { convertToHexFormat(repl, out);  return; }
 
-    // default @s
+    /* default @s */
     if (repl[0] == '#') convertToDecFormat(repl, out);
     else                convertToHexFormat(repl, out);
 }
 
-// Processes a description template and replaces placeholders (@s, @b, @h)
-//   - Escaped @ (using \@) are preserved literally
-//   - Replaces *all* unescaped placeholders
-void process_template(const char* tpl, const char* replacement,
-                      char* output, size_t out_size)
+/* Multi-operand template processor.
+ * Replaces *each* unescaped @X (X in {s,b,h}) with the next replacement string,
+ * applying smart conversion per placeholder mode. If replacements are exhausted,
+ * the last replacement is reused.
+ * Escaped '@' (written as '\@' in the source literal) are emitted literally '@'.
+ */
+void process_template_multi(const char* tpl,
+                            const char** replacements,
+                            size_t repl_count,
+                            char* output,
+                            size_t out_size)
 {
     size_t i = 0, k = 0;
     bool escape = false;
+    size_t ri = 0; /* replacement index */
+
+    if (repl_count == 0) {
+        /* nothing to replace with: just copy while unescaping */
+        while (tpl[i] != '\0' && k + 1 < out_size) {
+            if (!escape && tpl[i] == '\\') { escape = true; i++; continue; }
+            output[k++] = tpl[i++];
+            escape = false;
+        }
+        output[k] = '\0';
+        return;
+    }
+
     while (tpl[i] != '\0' && k + 1 < out_size) {
-        if (!escape && tpl[i] == '\\') {
-            // Start escape sequence, skip backslash
+        if (!escape && tpl[i] == '\\') { /* start escape, skip backslash */
             escape = true;
             i++;
             continue;
         }
+
         if (!escape && tpl[i] == '@' && tpl[i + 1] != '\0') {
             char mode = tpl[i + 1];
             if (mode == 's' || mode == 'b' || mode == 'h') {
+                const char* cur = replacements[ri < repl_count ? ri : repl_count - 1];
                 char buf[256]; buf[0] = '\0';
-                convertSmart(replacement, mode, buf);
+                convertSmart(cur, mode, buf);
                 size_t len = strnlen(buf, sizeof(buf));
                 if (k + len >= out_size) len = out_size - 1 - k;
                 memcpy(output + k, buf, len);
                 k += len;
                 i += 2;
+                if (ri + 1 < repl_count) ri++; /* advance until last, then stick */
                 continue;
             }
         }
-        // Normal character or escaped @
+
+        /* regular char or escaped '@' */
         output[k++] = tpl[i++];
         escape = false;
     }
     output[k] = '\0';
 }
 
+/* Keep for compatibility – returns first placeholder found, defaults to @s */
 void extract_placeholder(const char *descriptionTemplate, char *placeholder) {
-    int length = strlen(descriptionTemplate);
+    int length = (int)strlen(descriptionTemplate);
     int i = 0;
     placeholder[0] = '@';
     placeholder[1] = 's';
@@ -393,52 +415,60 @@ const char* describe(unsigned long pos, const char* input, const char *translati
     int result;
     static char lookupValue[512];
     static char explanation[512];
-    static char tempExplanation[512];
-    char mainInput[256];
-    char offsetPart[256];
+    static char tempExplanation[1024];
+
+    /* Parse input: main token (before first comma) and operands (after) */
     char tempInput[256];
-
-    // Copy input to tempInput for manipulation
     strncpy(tempInput, input, sizeof(tempInput));
-    tempInput[sizeof(tempInput) - 1] = '\0'; // Ensure null termination
+    tempInput[sizeof(tempInput) - 1] = '\0';
 
-    // Initialize offsetPart
-    offsetPart[0] = '\0';
+    char *tokens[8];
+    size_t token_count = 0;
 
-    // Check for comma
-    char* commaPtr = strchr(tempInput, ',');
-    if (commaPtr != NULL) {
-        // Split at comma
-        *commaPtr = '\0'; // Terminate mainInput at comma
-        strncpy(mainInput, tempInput, sizeof(mainInput));
-        mainInput[sizeof(mainInput) - 1] = '\0';
-        // Store everything after comma
-        strncpy(offsetPart, commaPtr + 1, sizeof(offsetPart));
-        offsetPart[sizeof(offsetPart) - 1] = '\0';
-    } else {
-        // No comma, use input as is
-        strncpy(mainInput, tempInput, sizeof(mainInput));
-        mainInput[sizeof(mainInput) - 1] = '\0';
+    char *p = tempInput;
+    while (*p && token_count < 8) {
+        /* split by comma */
+        char *comma = strchr(p, ',');
+        if (comma) *comma = '\0';
+        /* trim leading spaces */
+        while (isspace((unsigned char)*p)) p++;
+        /* trim trailing spaces */
+        char *end = p + strlen(p);
+        while (end > p && isspace((unsigned char)end[-1])) { end--; }
+        *end = '\0';
+        tokens[token_count++] = p;
+        if (!comma) break;
+        p = comma + 1;
     }
 
-    // Proceed to translate mainInput
+    const char* mainInput = (token_count > 0) ? tokens[0] : "";
+    const char* operands[7];
+    size_t operand_count = (token_count > 1) ? (token_count - 1) : 0;
+    for (size_t i = 0; i < operand_count; ++i) operands[i] = tokens[i + 1];
+
+    /* Build lookupValue for the main token (addresses become hex with optional patch detail) */
     if (mainInput[0] == '$') {
-        char* hex_memory = &mainInput[1];
+        char* hex_memory = (char*)&mainInput[1];
         unsigned long dec_memory = strtoul(hex_memory, NULL, 16);
         int internal = dec_memory >= patch_address_start && dec_memory <= patch_address_end;
-        int jump_size = dec_memory - pos;
+        int jump_size = (int)(dec_memory - pos);
 
         static char internal_jump_details[256];
         if (internal)
-            snprintf(internal_jump_details, sizeof(internal_jump_details), " (patch internal by %i bytes)", jump_size);
+            snprintf(internal_jump_details, sizeof(internal_jump_details),
+                     " (patch internal by %i bytes)", jump_size);
+        else
+            internal_jump_details[0] = '\0';
+
         snprintf(lookupValue, sizeof(lookupValue), "0x%s%s", hex_memory, internal_jump_details);
     } else {
         strncpy(lookupValue, mainInput, sizeof(lookupValue));
         lookupValue[sizeof(lookupValue) - 1] = '\0';
     }
 
+    /* Try table matches */
     for (int i = 0; i < translationTableSize; i++) {
-        if (regcomp(&regex, translationTable[i].pattern, REG_EXTENDED) != 0) {
+        if (regcomp(&regex, translationTable[i].pattern, REG_EXTENDED | REG_ICASE) != 0) {
             printf("Failed to compile regex for pattern: %s\n", translationTable[i].pattern);
             continue;
         }
@@ -448,27 +478,54 @@ const char* describe(unsigned long pos, const char* input, const char *translati
 
         if (result == 0) {
             const char* template = translationTable[i].description;
-            // Now, if offsetPart is not empty, append explanation
-            if (offsetPart[0] != '\0') {
-                static char extendedLookup[256];
-                char* offsetTrimmed = offsetPart;
-                while (isspace((unsigned char)*offsetTrimmed)) {
-                    offsetTrimmed++;
-                }
-                snprintf(extendedLookup, sizeof(extendedLookup), "%s with value of '%s' added", lookupValue, offsetTrimmed);
 
-                process_template(template, extendedLookup, tempExplanation, sizeof(tempExplanation));
-            } else {
-                process_template(template, lookupValue, tempExplanation, sizeof(tempExplanation));
+            /* Decide whether this entry is an instruction (pattern ^[A-Za-z]+$) */
+            bool is_instruction = false;
+            {
+                const char* pat = translationTable[i].pattern;
+                if (*pat == '^') pat++;
+                is_instruction = true;
+                for (; *pat && *pat != '$'; ++pat) {
+                    if (!isalpha((unsigned char)*pat)) { is_instruction = false; break; }
+                }
             }
+
+            /* Choose replacement sequence:
+             * - instructions: use operands in order (supports two+ operands)
+             * - non-instructions: replace @s with the looked-up address/name itself
+             */
+            const char* repl_buf[8];
+            size_t repl_cnt = 0;
+
+            if (is_instruction) {
+                if (operand_count == 0) {
+                    /* No operand provided; still provide one empty replacement to avoid UB */
+                    repl_buf[0] = "";
+                    repl_cnt = 1;
+                } else {
+                    for (size_t r = 0; r < operand_count && r < 8; ++r) {
+                        repl_buf[r] = operands[r];
+                    }
+                    repl_cnt = operand_count;
+                }
+            } else {
+                repl_buf[0] = lookupValue;
+                repl_cnt = 1;
+            }
+
+            process_template_multi(template, repl_buf, repl_cnt, tempExplanation, sizeof(tempExplanation));
             strncpy(explanation, tempExplanation, sizeof(explanation));
             explanation[sizeof(explanation) - 1] = '\0';
             return explanation;
         }
     }
 
-    process_template(translationTemplate, lookupValue, tempExplanation, sizeof(tempExplanation));
-    strncpy(explanation, tempExplanation, sizeof(explanation));
-    explanation[sizeof(explanation) - 1] = '\0';
-    return explanation;
+    /* Fallback: use provided translationTemplate with the main token as single replacement */
+    {
+        const char* repl_buf[1] = { lookupValue };
+        process_template_multi(translationTemplate, repl_buf, 1, tempExplanation, sizeof(tempExplanation));
+        strncpy(explanation, tempExplanation, sizeof(explanation));
+        explanation[sizeof(explanation) - 1] = '\0';
+        return explanation;
+    }
 }
