@@ -84,7 +84,7 @@ TranslationEntry translationTable[] = {
     {"^0x213E$", "STAT77 - PPU Status Flag"},
     {"^0x213F$", "STAT78 - PPU Status Flag"},
     /* Fallback for any PPU register in 2100–213F */
-    {"^0x21[0-3][0-9A-Fa-f]{2}$", "PPU Register (at @s)"},
+    {"^0x21[0-3][0-9A-Fa-f]{2}$", "PPU Register (at @m)"},
 
     // ---------------------------------
     // APU I/O (CPU side) & WRAM ports
@@ -145,7 +145,7 @@ TranslationEntry translationTable[] = {
     {"^0x421E$", "JOY4L - Joypad 4 Data (Low)"},
     {"^0x421F$", "JOY4H - Joypad 4 Data (High)"},
     /* Fallback for 4200–421F */
-    {"^0x42[0-1][0-9A-Fa-f]{2}$", "CPU/PPU I/O Register (at @s)"},
+    {"^0x42[0-1][0-9A-Fa-f]{2}$", "CPU/PPU I/O Register (at @m)"},
 
     // --------------
     // Expansion port
@@ -162,15 +162,15 @@ TranslationEntry translationTable[] = {
     // ------------------------
     // DMA registers (4300–437F)
     // ------------------------
-    {"^0x43[0-7][0-9A-Fa-f]{2}$", "DMA Register (Channel 0–7, at @s)"},
+    {"^0x43[0-7][0-9A-Fa-f]{2}$", "DMA Register (Channel 0–7, at @m)"},
 
     // ------------------------------
     // WRAM (7E/7F) & low-WRAM mirror
     // ------------------------------
-    {"^0x7E[0-9A-Fa-f]{4}$", "Work RAM (WRAM) (at @s)"},
-    {"^0x7F[0-9A-Fa-f]{4}$", "Mirror of WRAM (at @s)"},
+    {"^0x7E[0-9A-Fa-f]{4}$", "Work RAM (WRAM) (at @m)"},
+    {"^0x7F[0-9A-Fa-f]{4}$", "Mirror of WRAM (at @m)"},
     /* 16-bit addresses (without bank) */
-    {"^0x0[0-1][0-9A-Fa-f]{3}$", "Low WRAM mirror ($7E:0000–$7E:1FFF) (at @s)"},
+    {"^0x0[0-1][0-9A-Fa-f]{3}$", "Low WRAM mirror ($7E:0000–$7E:1FFF) (at @m)"},
 
     // ---------------------------------------------
     // Reset/Interrupt vectors (Bank $00)
@@ -182,21 +182,24 @@ TranslationEntry translationTable[] = {
     // ------------------------------------
     // Instruction descriptions (65C816)
     // ------------------------------------
+    /* NOTE: Keep @s for operands because they may be immediates or indexed.
+       Use @m only where a memory address is guaranteed (we cannot know addressing
+       mode from mnemonic alone). */
     {"^adc$", "Add with carry to @s"},
     {"^and$", "Logical AND with @s"},
     {"^asl$", "Arithmetic shift left on @s"},
-    {"^bcc$", "Branch to @s if carry is clear"},
-    {"^bcs$", "Branch to @s if carry is set"},
-    {"^beq$", "Branch to @s if equal"},
+    {"^bcc$", "Branch to @m if carry is clear"},
+    {"^bcs$", "Branch to @m if carry is set"},
+    {"^beq$", "Branch to @m if equal"},
     {"^bit$", "Test bits in @s"},
-    {"^bmi$", "Branch to @s if minus"},
-    {"^bne$", "Branch to @s if not equal"},
-    {"^bpl$", "Branch to @s if positive"},
-    {"^bra$", "Unconditional branch to @s"},
+    {"^bmi$", "Branch to @m if minus"},
+    {"^bne$", "Branch to @m if not equal"},
+    {"^bpl$", "Branch to @m if positive"},
+    {"^bra$", "Unconditional branch to @m"},
     {"^brk$", "Force break"},
     {"^brl$", "Branch long to @s"},
-    {"^bvc$", "Branch to @s if overflow is clear"},
-    {"^bvs$", "Branch to @s if overflow is set"},
+    {"^bvc$", "Branch to @m if overflow is clear"},
+    {"^bvs$", "Branch to @m if overflow is set"},
     {"^clc$", "Clear carry flag"},
     {"^cld$", "Clear decimal mode flag"},
     {"^cli$", "Clear interrupt disable flag"},
@@ -212,21 +215,23 @@ TranslationEntry translationTable[] = {
     {"^inc$", "Increment value at @s"},
     {"^inx$", "Increment X register"},
     {"^iny$", "Increment Y register"},
-    {"^jmp$", "Jump to @s"},
-    {"^jml$", "Long jump to @s"},
-    {"^jsr$", "Jump to subroutine at @s"},
-    {"^jsl$", "Long jump to subroutine at @s"},
+    /* Jumps/subroutines always target memory; prefer @m for clarity */
+    {"^jmp$", "Jump to @m"},
+    {"^jml$", "Long jump to @m"},
+    {"^jsr$", "Jump to subroutine at @m"},
+    {"^jsl$", "Long jump to subroutine at @m"},
     {"^lda$", "Load accumulator with value from @s"},
     {"^ldx$", "Load X register with @s"},
     {"^ldy$", "Load Y register with @s"},
     {"^lsr$", "Logical shift right on @s"},
+    /* MVN/MVP operands are bank bytes, not full addresses → keep @s */
     {"^mvn$", "Block move negative from source @s to destination @s"},
     {"^mvp$", "Block move positive from source @s to destination @s"},
     {"^nop$", "No operation"},
     {"^ora$", "Logical OR with @s"},
-    {"^pea$", "Push effective address @s onto stack"},
-    {"^pei$", "Push indirect address @s onto stack"},
-    {"^per$", "Push program counter relative address @s onto stack"},
+    {"^pea$", "Push effective address @m onto stack"},
+    {"^pei$", "Push indirect address @m onto stack"},
+    {"^per$", "Push program counter relative address @m onto stack"},
     {"^pha$", "Push accumulator onto stack"},
     {"^phb$", "Push data bank register onto stack"},
     {"^phd$", "Push direct page register onto stack"},
@@ -278,7 +283,7 @@ TranslationEntry translationTable[] = {
 
 const int translationTableSize = sizeof(translationTable) / sizeof(TranslationEntry);
 
-/* Converts $-style addresses to 0x-prefixed hex */
+/* Converts $-style addresses to 0x-prefixed hex (pass-through for others) */
 void convertToHexFormat(const char* address, char* out) {
     if (address[0] == '$') {
         sprintf(out, "0x%s", address + 1);
@@ -318,14 +323,65 @@ void convertToFlagFormat(const char* number, char* out) {
     }
 }
 
+/* NEW: Convert a memory-looking token to bb/aacc.
+ * Accepts forms like "$1234", "$001234", "0x1234", "0x001234",
+ * as well as wrapped/suffixed variants "($1234)", "[$1234]", "$1234,X", etc.
+ * If only 4 hex digits are found -> bank=00. If 6 -> use high 2 as bank.
+ * If no 4+ hex digits are found, falls back to hex-formatting.
+ */
+void convertToMemFormat(const char* token, char* out) {
+    char hex[16] = {0};
+    int hlen = 0;
+
+    /* Scan token and collect continuous hex digits after an optional 0x/$
+       or any bracket; stop only when we amassed enough or hit non-hex after start. */
+    const char* p = token;
+
+    /* Skip wrappers and prefixes gracefully */
+    while (*p && (*p=='(' || *p=='[' || *p==' ')) p++;
+
+    if (p[0]=='#') {
+        /* immediates are not memory addresses: leave as-is */
+        strcpy(out, token);
+        return;
+    }
+
+    if (p[0]=='0' && (p[1]=='x' || p[1]=='X')) p += 2;
+    else if (p[0]=='$') p += 1;
+
+    /* Collect hex digits possibly across the token until a non-hex */
+    const char* q = p;
+    while (*q && isxdigit((unsigned char)*q) && hlen < (int)sizeof(hex)-1) {
+        hex[hlen++] = (char)toupper((unsigned char)*q);
+        q++;
+    }
+
+    if (hlen >= 6) {
+        /* Use last 6 digits to be robust (e.g., if a bank is embedded) */
+        const char* base = hex + (hlen - 6);
+        char bb[3] = { base[0], base[1], 0 };
+        char aacc[5] = { base[2], base[3], base[4], base[5], 0 };
+        sprintf(out, "%s/%s", bb, aacc);
+    } else if (hlen >= 4) {
+        const char* base = hex + (hlen - 4);
+        char aacc[5] = { base[0], base[1], base[2], base[3], 0 };
+        sprintf(out, "00/%s", aacc);
+    } else {
+        /* Not a parseable memory address: present as hex-form (or raw) */
+        convertToHexFormat(token, out);
+    }
+}
+
 /* Smart conversion selector:
  *   - mode == 'b' -> binary (for immediates)
  *   - mode == 'h' -> force hex formatting
+ *   - mode == 'm' -> memory bb/aacc formatting (2-byte => 00/aacc; 3-byte => bb/aacc)
  *   - default ('s'): immediates -> decimal in single quotes, otherwise hex
  */
 static void convertSmart(const char* repl, char mode, char* out) {
     if (mode == 'b') { convertToFlagFormat(repl, out); return; }
     if (mode == 'h') { convertToHexFormat(repl, out);  return; }
+    if (mode == 'm') { convertToMemFormat(repl, out);  return; }
 
     /* default @s */
     if (repl[0] == '#') convertToDecFormat(repl, out);
@@ -333,7 +389,7 @@ static void convertSmart(const char* repl, char mode, char* out) {
 }
 
 /* Multi-operand template processor.
- * Replaces *each* unescaped @X (X in {s,b,h}) with the next replacement string,
+ * Replaces *each* unescaped @X (X in {s,b,h,m}) with the next replacement string,
  * applying smart conversion per placeholder mode. If replacements are exhausted,
  * the last replacement is reused.
  * Escaped '@' (written as '\@' in the source literal) are emitted literally '@'.
@@ -368,7 +424,7 @@ void process_template_multi(const char* tpl,
 
         if (!escape && tpl[i] == '@' && tpl[i + 1] != '\0') {
             char mode = tpl[i + 1];
-            if (mode == 's' || mode == 'b' || mode == 'h') {
+            if (mode == 's' || mode == 'b' || mode == 'h' || mode == 'm') {
                 const char* cur = replacements[ri < repl_count ? ri : repl_count - 1];
                 char buf[256]; buf[0] = '\0';
                 convertSmart(cur, mode, buf);
@@ -490,16 +546,15 @@ const char* describe(unsigned long pos, const char* input, const char *translati
                 }
             }
 
-            /* Choose replacement sequence:
-             * - instructions: use operands in order (supports two+ operands)
-             * - non-instructions: replace @s with the looked-up address/name itself
+            /* Build replacement list:
+             * - instructions: use operands in order (supports multiple operands)
+             * - non-instructions: replace placeholders with the looked-up address/name itself
              */
             const char* repl_buf[8];
             size_t repl_cnt = 0;
 
             if (is_instruction) {
                 if (operand_count == 0) {
-                    /* No operand provided; still provide one empty replacement to avoid UB */
                     repl_buf[0] = "";
                     repl_cnt = 1;
                 } else {
