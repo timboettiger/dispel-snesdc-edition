@@ -12,6 +12,12 @@ The `DEADC0DE` Edition includes special modifications to disassemble specific [P
 
 The highlight of the Edition is a new feature called *Annotions*. It helps analyzing the assembler code by providing detailed opcode annotations as well as a analysis of operands.
 
+---
+
+This repository is part of the larger [Project Preservation](https://github.com/timboettiger/action-replay-mk-iii), which includes the reverse-engineering documentation, user manuals and other interesting things about the Pro Action Replay MK3 for SNES.
+
+---
+
 ## Features
 
 **General:**
